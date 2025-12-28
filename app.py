@@ -147,7 +147,7 @@ def generate_routing_graphviz(bom_df):
     lines.append('        penwidth=2;')
     for rm in sorted(raw_materials):
         safe_id = rm.replace(' ', '_').replace('-', '_')
-        lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="2" CELLSPACING="0"><TR><TD ALIGN="CENTER"><B>{rm}</B><BR/><FONT POINT-SIZE="8" COLOR="#CBD5E1">(Material)</FONT></TD></TR></TABLE>>, fillcolor="#475569"];')
+        lines.append(f'        {safe_id} [label=<<B>{rm}</B>>, fillcolor="#475569"];')
     lines.append('    }')
     lines.append('')
     
