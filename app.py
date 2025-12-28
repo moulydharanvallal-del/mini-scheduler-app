@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from scheduler_core import (
     run_scheduler,
@@ -13,6 +14,205 @@ st.set_page_config(page_title="Mini Manufacturing Scheduler", layout="wide")
 
 st.title("🏭 Mini Manufacturing Scheduler")
 st.caption("Enter your data in the tables below, then click Run to generate a schedule.")
+
+# --- Work Center Color Mapping ---
+WORKCENTER_COLORS = {
+    'ASSEMBLY': '#2196F3',      # Blue
+    'FINISHING': '#FFC107',     # Yellow
+    'MACHINING': '#4CAF50',     # Green
+    'MOLDING': '#9C27B0',       # Purple
+    'CASTING': '#FF5722',       # Orange
+    'WELDING': '#00BCD4',       # Cyan
+    'PAINTING': '#E91E63',      # Pink
+    'TESTING': '#607D8B',       # Grey-Blue
+    'PACKAGING': '#795548',     # Brown
+}
+
+def get_color_for_workcenter(wc):
+    """Get color for a work center, generate one if not in mapping"""
+    if not wc or wc == '':
+        return '#757575'  # Grey for raw materials
+    wc_upper = str(wc).upper()
+    for key, color in WORKCENTER_COLORS.items():
+        if key in wc_upper:
+            return color
+    # Generate a color based on hash
+    hash_val = hash(wc) % 360
+    return f'hsl({hash_val}, 70%, 50%)'
+
+def generate_routing_mermaid(bom_df):
+    """Generate Mermaid diagram from BOM data"""
+    
+    # Parse BOM into structure
+    parts = {}
+    for _, row in bom_df.iterrows():
+        part_name = str(row.get('part_name', '')).strip()
+        part_type = str(row.get('part_type', '')).strip().upper()
+        if not part_name:
+            continue
+            
+        if part_name not in parts:
+            parts[part_name] = {'type': part_type, 'steps': [], 'workcenters': set()}
+        
+        if part_type == 'RW':
+            continue
+            
+        inputs_str = str(row.get('inputs_needed', ''))
+        inputs = [s.strip() for s in inputs_str.split(',') if s.strip()]
+        
+        step = str(row.get('stepnumber', ''))
+        wc = str(row.get('workcenter', '')).strip()
+        
+        if wc:
+            parts[part_name]['workcenters'].add(wc)
+        
+        parts[part_name]['steps'].append({
+            'step': step,
+            'workcenter': wc,
+            'inputs': inputs
+        })
+    
+    # Build Mermaid diagram
+    lines = ['flowchart LR']
+    
+    # Collect nodes by type
+    raw_materials = []
+    sub_assemblies = []
+    final_products = []
+    
+    for part_name, info in parts.items():
+        if info['type'] == 'RW':
+            raw_materials.append(part_name)
+        elif info['type'] == 'SA':
+            sub_assemblies.append(part_name)
+        elif info['type'] == 'FA':
+            final_products.append(part_name)
+    
+    # Raw Materials subgraph
+    if raw_materials:
+        lines.append('    subgraph RAW["🪨 Raw Materials"]')
+        for rm in sorted(raw_materials):
+            safe_id = rm.replace(' ', '_').replace('-', '_')
+            lines.append(f'        {safe_id}["{rm}"]')
+        lines.append('    end')
+    
+    # Manufacturing Flow subgraph
+    lines.append('    subgraph FLOW["⚙️ Manufacturing Flow"]')
+    
+    # Add sub-assembly nodes
+    for sa in sorted(sub_assemblies):
+        info = parts[sa]
+        wc = list(info['workcenters'])[0] if info['workcenters'] else ''
+        safe_id = sa.replace(' ', '_').replace('-', '_')
+        lines.append(f'        {safe_id}["{sa}<br/>({wc})"]')
+    
+    # Add FA step nodes
+    for fa in sorted(final_products):
+        info = parts[fa]
+        for step_info in sorted(info['steps'], key=lambda x: str(x['step'])):
+            step = step_info['step']
+            wc = step_info['workcenter']
+            safe_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
+            lines.append(f'        {safe_id}["{fa}<br/>Step {step}<br/>({wc})"]')
+    
+    lines.append('    end')
+    
+    # Finished Goods subgraph
+    if final_products:
+        lines.append('    subgraph FG["📦 Finished Goods"]')
+        for fp in sorted(final_products):
+            safe_id = f"{fp}_OUT".replace(' ', '_').replace('-', '_')
+            lines.append(f'        {safe_id}["{fp}"]')
+        lines.append('    end')
+    
+    lines.append('')
+    
+    # Add connections
+    # SA inputs (from raw materials)
+    for sa in sub_assemblies:
+        info = parts[sa]
+        sa_id = sa.replace(' ', '_').replace('-', '_')
+        for step_info in info['steps']:
+            for inp in step_info['inputs']:
+                inp_id = inp.replace(' ', '_').replace('-', '_')
+                if inp in raw_materials:
+                    lines.append(f'    {inp_id} --> {sa_id}')
+                elif inp in sub_assemblies:
+                    lines.append(f'    {inp_id} --> {sa_id}')
+    
+    # FA step inputs and connections
+    for fa in final_products:
+        info = parts[fa]
+        sorted_steps = sorted(info['steps'], key=lambda x: str(x['step']))
+        
+        prev_step_id = None
+        for step_info in sorted_steps:
+            step = step_info['step']
+            step_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
+            
+            # Connect from previous step
+            if prev_step_id:
+                lines.append(f'    {prev_step_id} --> {step_id}')
+            
+            # Connect inputs
+            for inp in step_info['inputs']:
+                inp_id = inp.replace(' ', '_').replace('-', '_')
+                if inp in raw_materials:
+                    lines.append(f'    {inp_id} --> {step_id}')
+                elif inp in sub_assemblies:
+                    lines.append(f'    {inp_id} --> {step_id}')
+            
+            prev_step_id = step_id
+        
+        # Connect last step to output
+        if prev_step_id:
+            out_id = f"{fa}_OUT".replace(' ', '_').replace('-', '_')
+            lines.append(f'    {prev_step_id} --> {out_id}')
+    
+    lines.append('')
+    
+    # Add styles based on work centers
+    for sa in sub_assemblies:
+        info = parts[sa]
+        wc = list(info['workcenters'])[0] if info['workcenters'] else ''
+        color = get_color_for_workcenter(wc)
+        safe_id = sa.replace(' ', '_').replace('-', '_')
+        text_color = '#fff' if color not in ['#FFC107', '#FFEB3B'] else '#000'
+        lines.append(f'    style {safe_id} fill:{color},color:{text_color}')
+    
+    for fa in final_products:
+        info = parts[fa]
+        for step_info in info['steps']:
+            step = step_info['step']
+            wc = step_info['workcenter']
+            color = get_color_for_workcenter(wc)
+            safe_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
+            text_color = '#fff' if color not in ['#FFC107', '#FFEB3B'] else '#000'
+            lines.append(f'    style {safe_id} fill:{color},color:{text_color}')
+    
+    # Style raw materials grey
+    for rm in raw_materials:
+        safe_id = rm.replace(' ', '_').replace('-', '_')
+        lines.append(f'    style {safe_id} fill:#757575,color:#fff')
+    
+    return '\n'.join(lines)
+
+def render_mermaid(mermaid_code, height=500):
+    """Render Mermaid diagram using HTML component"""
+    html = f"""
+    <html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+        <script>mermaid.initialize({{startOnLoad:true, theme:'neutral'}});</script>
+    </head>
+    <body>
+        <div class="mermaid" style="display: flex; justify-content: center;">
+{mermaid_code}
+        </div>
+    </body>
+    </html>
+    """
+    components.html(html, height=height, scrolling=True)
 
 # --- Helper to clean data for display ---
 def clean_for_display(data):
@@ -44,7 +244,6 @@ if "orders_df" not in st.session_state:
 
 if "bom_df" not in st.session_state:
     df = pd.DataFrame(DEFAULT_BOM)
-    # Convert all to string to avoid type issues
     for col in df.columns:
         df[col] = df[col].astype(str).replace("nan", "").replace("<NA>", "")
     st.session_state.bom_df = df
@@ -54,7 +253,7 @@ if "capacity_df" not in st.session_state:
     st.session_state.capacity_df = pd.DataFrame(cap_list)
 
 # --- Tabs ---
-tab1, tab2, tab3, tab4 = st.tabs(["📋 Customer Orders", "🔧 BOM / Routing", "🏭 Work Centers", "📊 Results"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📋 Orders", "🔧 BOM", "🏭 Work Centers", "��️ Routing Map", "📊 Results"])
 
 # --- Tab 1: Customer Orders ---
 with tab1:
@@ -75,9 +274,7 @@ with tab1:
         hide_index=True,
         key="orders_editor"
     )
-    # Update session state with edits
     st.session_state.orders_df = edited_orders
-    
     st.caption(f"📌 {len(edited_orders)} orders loaded")
 
 # --- Tab 2: BOM / Routing ---
@@ -108,7 +305,6 @@ with tab2:
         key="bom_editor"
     )
     st.session_state.bom_df = edited_bom
-    
     st.caption(f"📌 {len(edited_bom)} BOM rows loaded")
 
 # --- Tab 3: Work Center Capacity ---
@@ -137,8 +333,46 @@ with tab3:
         total_machines = int(edited_capacity["num_machines"].sum()) if not edited_capacity.empty else 0
         st.metric("Total Machines", total_machines)
 
-# --- Tab 4: Results ---
+# --- Tab 4: Routing Map ---
 with tab4:
+    st.subheader("🗺️ Product Routing Map")
+    st.caption("Visual representation of your BOM - how products flow from raw materials to finished goods.")
+    
+    # Generate and display the diagram
+    try:
+        mermaid_code = generate_routing_mermaid(st.session_state.bom_df)
+        
+        # Show legend
+        st.markdown("**🎨 Work Center Colors:**")
+        legend_cols = st.columns(5)
+        workcenters_in_bom = set()
+        for _, row in st.session_state.bom_df.iterrows():
+            wc = str(row.get('workcenter', '')).strip()
+            if wc:
+                workcenters_in_bom.add(wc)
+        
+        for i, wc in enumerate(sorted(workcenters_in_bom)):
+            color = get_color_for_workcenter(wc)
+            legend_cols[i % 5].markdown(
+                f'<span style="background-color:{color};color:white;padding:2px 8px;border-radius:4px;">{wc}</span>',
+                unsafe_allow_html=True
+            )
+        
+        st.markdown("---")
+        
+        # Render diagram
+        render_mermaid(mermaid_code, height=600)
+        
+        # Show raw Mermaid code in expander
+        with st.expander("📝 View Mermaid Code"):
+            st.code(mermaid_code, language="mermaid")
+            
+    except Exception as e:
+        st.error(f"Error generating diagram: {str(e)}")
+        st.exception(e)
+
+# --- Tab 5: Results ---
+with tab5:
     scheduled = st.session_state.get("scheduled")
     work_orders = st.session_state.get("work_orders")
     plan = st.session_state.get("plan")
@@ -156,7 +390,6 @@ with tab4:
             st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Scheduled Runs")
-        # Clean data for display (convert tuples to strings)
         scheduled_df = clean_for_display(scheduled)
         st.dataframe(scheduled_df, use_container_width=True, height=320)
 
@@ -181,17 +414,14 @@ with tab4:
 # --- Run Scheduler ---
 if run:
     try:
-        # Get current data from session state
         orders = st.session_state.orders_df.to_dict("records")
         
-        # Ensure due_date is string
         for o in orders:
             if pd.notna(o.get("due_date")):
                 o["due_date"] = str(o["due_date"])[:10]
         
         bom = st.session_state.bom_df.to_dict("records")
         
-        # Clean up BOM - convert numeric strings back to int where needed
         for row in bom:
             for key in ["stepnumber", "batchsize", "cycletime"]:
                 val = row.get(key, "")
@@ -215,8 +445,8 @@ if run:
         st.session_state["fig"] = fig
         
         st.success(f"✅ Done! Generated {len(scheduled)} scheduled runs.")
-        st.rerun()  # Rerun to show results tab
+        st.rerun()
 
     except Exception as e:
         st.error(f"❌ Error: {str(e)}")
-        st.exception(e)  # Show full traceback for debugging
+        st.exception(e)
