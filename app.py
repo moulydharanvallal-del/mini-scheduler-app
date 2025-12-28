@@ -2,7 +2,7 @@ import json
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
-from streamlit_mermaid import st_mermaid
+
 
 from scheduler_core import (
     run_scheduler,
@@ -41,8 +41,8 @@ def get_color_for_workcenter(wc):
     hash_val = hash(wc) % 360
     return f'hsl({hash_val}, 70%, 50%)'
 
-def generate_routing_mermaid(bom_df):
-    """Generate Mermaid diagram from BOM data"""
+def generate_routing_graphviz(bom_df):
+    """Generate Graphviz DOT diagram from BOM data"""
     
     # Parse BOM into structure
     parts = {}
@@ -73,9 +73,6 @@ def generate_routing_mermaid(bom_df):
             'inputs': inputs
         })
     
-    # Build Mermaid diagram
-    lines = ['flowchart LR']
-    
     # Collect nodes by type
     raw_materials = []
     sub_assemblies = []
@@ -89,59 +86,75 @@ def generate_routing_mermaid(bom_df):
         elif info['type'] == 'FA':
             final_products.append(part_name)
     
-    # Raw Materials subgraph
-    if raw_materials:
-        lines.append('    subgraph RAW["🪨 Raw Materials"]')
-        for rm in sorted(raw_materials):
-            safe_id = rm.replace(' ', '_').replace('-', '_')
-            lines.append(f'        {safe_id}["{rm}"]')
-        lines.append('    end')
+    # Build DOT graph
+    lines = []
+    lines.append('digraph BOM {')
+    lines.append('    rankdir=LR;')
+    lines.append('    node [shape=box, style="rounded,filled", fontname="Helvetica"];')
+    lines.append('    edge [color="#666666"];')
+    lines.append('')
     
-    # Manufacturing Flow subgraph
-    lines.append('    subgraph FLOW["⚙️ Manufacturing Flow"]')
+    # Raw Materials cluster
+    lines.append('    subgraph cluster_raw {')
+    lines.append('        label="🪨 Raw Materials";')
+    lines.append('        style=dashed;')
+    lines.append('        color="#999999";')
+    for rm in sorted(raw_materials):
+        safe_id = rm.replace(' ', '_').replace('-', '_')
+        lines.append(f'        {safe_id} [label="{rm}", fillcolor="#BDBDBD", fontcolor="white"];')
+    lines.append('    }')
+    lines.append('')
     
-    # Add sub-assembly nodes
+    # Manufacturing Flow cluster
+    lines.append('    subgraph cluster_flow {')
+    lines.append('        label="⚙️ Manufacturing";')
+    lines.append('        style=dashed;')
+    lines.append('        color="#999999";')
+    
+    # Sub-assemblies
     for sa in sorted(sub_assemblies):
         info = parts[sa]
         wc = list(info['workcenters'])[0] if info['workcenters'] else ''
+        color = get_color_for_workcenter(wc)
         safe_id = sa.replace(' ', '_').replace('-', '_')
-        lines.append(f'        {safe_id}["{sa}<br/>({wc})"]')
+        lines.append(f'        {safe_id} [label="{sa}\n({wc})", fillcolor="{color}", fontcolor="white"];')
     
-    # Add FA step nodes
+    # FA steps
     for fa in sorted(final_products):
         info = parts[fa]
         for step_info in sorted(info['steps'], key=lambda x: str(x['step'])):
             step = step_info['step']
             wc = step_info['workcenter']
+            color = get_color_for_workcenter(wc)
             safe_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
-            lines.append(f'        {safe_id}["{fa}<br/>Step {step}<br/>({wc})"]')
+            text_color = "black" if color == "#FFC107" else "white"
+            lines.append(f'        {safe_id} [label="{fa}\nStep {step}\n({wc})", fillcolor="{color}", fontcolor="{text_color}"];')
     
-    lines.append('    end')
-    
-    # Finished Goods subgraph
-    if final_products:
-        lines.append('    subgraph FG["📦 Finished Goods"]')
-        for fp in sorted(final_products):
-            safe_id = f"{fp}_OUT".replace(' ', '_').replace('-', '_')
-            lines.append(f'        {safe_id}["{fp}"]')
-        lines.append('    end')
-    
+    lines.append('    }')
     lines.append('')
     
-    # Add connections
-    # SA inputs (from raw materials)
+    # Finished Goods cluster
+    lines.append('    subgraph cluster_fg {')
+    lines.append('        label="📦 Finished Goods";')
+    lines.append('        style=dashed;')
+    lines.append('        color="#999999";')
+    for fp in sorted(final_products):
+        safe_id = f"{fp}_OUT".replace(' ', '_').replace('-', '_')
+        lines.append(f'        {safe_id} [label="{fp}", fillcolor="#4CAF50", fontcolor="white", shape=doubleoctagon];')
+    lines.append('    }')
+    lines.append('')
+    
+    # Edges - SA inputs
     for sa in sub_assemblies:
         info = parts[sa]
         sa_id = sa.replace(' ', '_').replace('-', '_')
         for step_info in info['steps']:
             for inp in step_info['inputs']:
                 inp_id = inp.replace(' ', '_').replace('-', '_')
-                if inp in raw_materials:
-                    lines.append(f'    {inp_id} --> {sa_id}')
-                elif inp in sub_assemblies:
-                    lines.append(f'    {inp_id} --> {sa_id}')
+                if inp in raw_materials or inp in sub_assemblies:
+                    lines.append(f'    {inp_id} -> {sa_id};')
     
-    # FA step inputs and connections
+    # Edges - FA steps
     for fa in final_products:
         info = parts[fa]
         sorted_steps = sorted(info['steps'], key=lambda x: str(x['step']))
@@ -151,56 +164,23 @@ def generate_routing_mermaid(bom_df):
             step = step_info['step']
             step_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
             
-            # Connect from previous step
             if prev_step_id:
-                lines.append(f'    {prev_step_id} --> {step_id}')
+                lines.append(f'    {prev_step_id} -> {step_id};')
             
-            # Connect inputs
             for inp in step_info['inputs']:
                 inp_id = inp.replace(' ', '_').replace('-', '_')
-                if inp in raw_materials:
-                    lines.append(f'    {inp_id} --> {step_id}')
-                elif inp in sub_assemblies:
-                    lines.append(f'    {inp_id} --> {step_id}')
+                if inp in raw_materials or inp in sub_assemblies:
+                    lines.append(f'    {inp_id} -> {step_id};')
             
             prev_step_id = step_id
         
-        # Connect last step to output
         if prev_step_id:
             out_id = f"{fa}_OUT".replace(' ', '_').replace('-', '_')
-            lines.append(f'    {prev_step_id} --> {out_id}')
+            lines.append(f'    {prev_step_id} -> {out_id};')
     
-    lines.append('')
-    
-    # Add styles based on work centers
-    for sa in sub_assemblies:
-        info = parts[sa]
-        wc = list(info['workcenters'])[0] if info['workcenters'] else ''
-        color = get_color_for_workcenter(wc)
-        safe_id = sa.replace(' ', '_').replace('-', '_')
-        text_color = '#fff' if color not in ['#FFC107', '#FFEB3B'] else '#000'
-        lines.append(f'    style {safe_id} fill:{color},color:{text_color}')
-    
-    for fa in final_products:
-        info = parts[fa]
-        for step_info in info['steps']:
-            step = step_info['step']
-            wc = step_info['workcenter']
-            color = get_color_for_workcenter(wc)
-            safe_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
-            text_color = '#fff' if color not in ['#FFC107', '#FFEB3B'] else '#000'
-            lines.append(f'    style {safe_id} fill:{color},color:{text_color}')
-    
-    # Style raw materials grey
-    for rm in raw_materials:
-        safe_id = rm.replace(' ', '_').replace('-', '_')
-        lines.append(f'    style {safe_id} fill:#757575,color:#fff')
+    lines.append('}')
     
     return '\n'.join(lines)
-
-def render_mermaid(mermaid_code, height=500):
-    """Render Mermaid diagram using streamlit-mermaid"""
-    st_mermaid(mermaid_code, height=height)
 
 # --- Helper to clean data for display ---
 def clean_for_display(data):
@@ -328,7 +308,7 @@ with tab4:
     
     # Generate and display the diagram
     try:
-        mermaid_code = generate_routing_mermaid(st.session_state.bom_df)
+        dot_code = generate_routing_graphviz(st.session_state.bom_df)
         
         # Show legend
         st.markdown("**🎨 Work Center Colors:**")
@@ -349,11 +329,11 @@ with tab4:
         st.markdown("---")
         
         # Render diagram
-        render_mermaid(mermaid_code, height=600)
+        st.graphviz_chart(dot_code, use_container_width=True)
         
         # Show raw Mermaid code in expander
-        with st.expander("📝 View Mermaid Code"):
-            st.code(mermaid_code, language="mermaid")
+        with st.expander("📝 View DOT Code"):
+            st.code(dot_code, language="dot")
             
     except Exception as e:
         st.error(f"Error generating diagram: {str(e)}")
