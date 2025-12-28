@@ -110,7 +110,7 @@ def generate_routing_graphviz(bom_df):
     lines.append('    nodesep="1.0";')  # More spacing between nodes
     lines.append('    ranksep="1.5";')  # More spacing between ranks
     lines.append('    rankdir=LR;')
-    lines.append('    splines=polyline;')  # Clean polyline routing
+    lines.append('    splines=curved;')  # Smooth curved arrows
     lines.append('    overlap=false;')
     lines.append('    ')
     lines.append('    // Global node styling')
@@ -147,7 +147,7 @@ def generate_routing_graphviz(bom_df):
     lines.append('        penwidth=2;')
     for rm in sorted(raw_materials):
         safe_id = rm.replace(' ', '_').replace('-', '_')
-        lines.append(f'        {safe_id} [label=<<FONT POINT-SIZE="8" COLOR="#CBD5E1">Material</FONT><BR/><B>{rm}</B>>, fillcolor="#475569"];')
+        lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="8" COLOR="#CBD5E1">Material</FONT></TD></TR><TR><TD ALIGN="CENTER"><B>{rm}</B></TD></TR></TABLE>>, fillcolor="#475569"];')
     lines.append('    }')
     lines.append('')
     
@@ -169,7 +169,7 @@ def generate_routing_graphviz(bom_df):
         wc = list(info['workcenters'])[0] if info['workcenters'] else ''
         color = get_modern_color(wc)
         safe_id = sa.replace(' ', '_').replace('-', '_')
-        lines.append(f'        {safe_id} [label=<<FONT POINT-SIZE="8" COLOR="#E2E8F0">Product</FONT><BR/><B>{sa}</B><BR/><FONT POINT-SIZE="9" COLOR="#E2E8F0">WC: {wc}</FONT>>, fillcolor="{color}"];')
+        lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="8" COLOR="#E2E8F0">Product</FONT></TD></TR><TR><TD ALIGN="CENTER"><B>{sa}</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9" COLOR="#E2E8F0">WC: {wc}</FONT></TD></TR></TABLE>>, fillcolor="{color}"];')
     
     # FA steps
     for fa in sorted(final_products):
@@ -179,7 +179,7 @@ def generate_routing_graphviz(bom_df):
             wc = step_info['workcenter']
             color = get_modern_color(wc)
             safe_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
-            lines.append(f'        {safe_id} [label=<<FONT POINT-SIZE="8" COLOR="#E2E8F0">Product</FONT><BR/><B>{fa}</B><BR/><FONT POINT-SIZE="9">Step {step}</FONT><BR/><FONT POINT-SIZE="9" COLOR="#E2E8F0">WC: {wc}</FONT>>, fillcolor="{color}"];')
+            lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="8" COLOR="#E2E8F0">Product</FONT></TD></TR><TR><TD ALIGN="CENTER"><B>{fa}</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">Step {step}</FONT></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9" COLOR="#E2E8F0">WC: {wc}</FONT></TD></TR></TABLE>>, fillcolor="{color}"];')
     
     lines.append('    }')
     lines.append('')
@@ -197,7 +197,7 @@ def generate_routing_graphviz(bom_df):
     lines.append('        penwidth=2;')
     for fp in sorted(final_products):
         safe_id = f"{fp}_OUT".replace(' ', '_').replace('-', '_')
-        lines.append(f'        {safe_id} [label=<<FONT POINT-SIZE="8" COLOR="#E2E8F0">Finished</FONT><BR/><B>{fp}</B><BR/><FONT POINT-SIZE="9">✓ Complete</FONT>>, fillcolor="#22C55E", shape=box];')
+        lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="8" COLOR="#E2E8F0">Finished</FONT></TD></TR><TR><TD ALIGN="CENTER"><B>{fp}</B></TD></TR><TR><TD ALIGN="CENTER"><FONT POINT-SIZE="9">✓ Complete</FONT></TD></TR></TABLE>>, fillcolor="#22C55E", shape=box];')
     lines.append('    }')
     lines.append('')
     
