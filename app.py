@@ -18,16 +18,16 @@ st.caption("Enter your data in the tables below, then click Run to generate a sc
 
 # --- Dynamic Color Palette ---
 COLOR_PALETTE = [
-    '#6366F1',  # Indigo
-    '#10B981',  # Emerald
-    '#EC4899',  # Pink
-    '#F59E0B',  # Amber
-    '#F97316',  # Orange
-    '#06B6D4',  # Cyan
-    '#8B5CF6',  # Violet
-    '#84CC16',  # Lime
-    '#EF4444',  # Red
-    '#14B8A6',  # Teal
+    '#818CF8',  # Indigo (brighter)
+    '#34D399',  # Emerald (brighter)  
+    '#F472B6',  # Pink (brighter)
+    '#FBBF24',  # Amber (brighter)
+    '#FB923C',  # Orange (brighter)
+    '#22D3EE',  # Cyan (brighter)
+    '#A78BFA',  # Violet (brighter)
+    '#A3E635',  # Lime (brighter)
+    '#F87171',  # Red (brighter)
+    '#2DD4BF',  # Teal (brighter)
 ]
 
 def get_workcenter_color_map(bom_df):
@@ -104,12 +104,14 @@ def generate_routing_graphviz(bom_df):
     # Build modern DOT graph
     lines = []
     lines.append('digraph BOM {')
-    lines.append('    // Modern dark theme')
+    lines.append('    // Modern dark theme with smooth edges')
     lines.append('    bgcolor="#1E293B";')  # Slate-800 background
     lines.append('    pad="0.5";')
-    lines.append('    nodesep="0.8";')
-    lines.append('    ranksep="1.2";')
+    lines.append('    nodesep="1.0";')  # More spacing between nodes
+    lines.append('    ranksep="1.5";')  # More spacing between ranks
     lines.append('    rankdir=LR;')
+    lines.append('    splines=polyline;')  # Clean polyline routing
+    lines.append('    overlap=false;')
     lines.append('    ')
     lines.append('    // Global node styling')
     lines.append('    node [')
@@ -122,12 +124,13 @@ def generate_routing_graphviz(bom_df):
     lines.append('        margin="0.3,0.2"')
     lines.append('    ];')
     lines.append('    ')
-    lines.append('    // Global edge styling')
+    lines.append('    // Elegant edge styling')
     lines.append('    edge [')
-    lines.append('        color="#94A3B8",')  # Slate-400
-    lines.append('        penwidth=2,')
-    lines.append('        arrowsize=0.8,')
-    lines.append('        arrowhead=vee')
+    lines.append('        color="#CBD5E1",')  # Light gray edges
+    lines.append('        penwidth=1.2,')  # Thinner lines
+    lines.append('        arrowsize=0.7,')
+    lines.append('        arrowhead=vee,')  # Sharp V arrow
+    lines.append('        style=solid')
     lines.append('    ];')
     lines.append('')
     
@@ -144,7 +147,7 @@ def generate_routing_graphviz(bom_df):
     lines.append('        penwidth=2;')
     for rm in sorted(raw_materials):
         safe_id = rm.replace(' ', '_').replace('-', '_')
-        lines.append(f'        {safe_id} [label="{rm}", fillcolor="#475569"];')  # Slate-600
+        lines.append(f'        {safe_id} [label=<<FONT POINT-SIZE="8" COLOR="#CBD5E1">Material</FONT><BR/><B>{rm}</B>>, fillcolor="#475569"];')
     lines.append('    }')
     lines.append('')
     
@@ -166,7 +169,7 @@ def generate_routing_graphviz(bom_df):
         wc = list(info['workcenters'])[0] if info['workcenters'] else ''
         color = get_modern_color(wc)
         safe_id = sa.replace(' ', '_').replace('-', '_')
-        lines.append(f'        {safe_id} [label=<<B>{sa}</B><BR/><FONT POINT-SIZE="9">{wc}</FONT>>, fillcolor="{color}"];')
+        lines.append(f'        {safe_id} [label=<<FONT POINT-SIZE="8" COLOR="#E2E8F0">Product</FONT><BR/><B>{sa}</B><BR/><FONT POINT-SIZE="9" COLOR="#E2E8F0">WC: {wc}</FONT>>, fillcolor="{color}"];')
     
     # FA steps
     for fa in sorted(final_products):
@@ -176,7 +179,7 @@ def generate_routing_graphviz(bom_df):
             wc = step_info['workcenter']
             color = get_modern_color(wc)
             safe_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
-            lines.append(f'        {safe_id} [label=<<B>{fa}</B><BR/>Step {step}<BR/><FONT POINT-SIZE="9">{wc}</FONT>>, fillcolor="{color}"];')
+            lines.append(f'        {safe_id} [label=<<FONT POINT-SIZE="8" COLOR="#E2E8F0">Product</FONT><BR/><B>{fa}</B><BR/><FONT POINT-SIZE="9">Step {step}</FONT><BR/><FONT POINT-SIZE="9" COLOR="#E2E8F0">WC: {wc}</FONT>>, fillcolor="{color}"];')
     
     lines.append('    }')
     lines.append('')
@@ -194,7 +197,7 @@ def generate_routing_graphviz(bom_df):
     lines.append('        penwidth=2;')
     for fp in sorted(final_products):
         safe_id = f"{fp}_OUT".replace(' ', '_').replace('-', '_')
-        lines.append(f'        {safe_id} [label=<<B>{fp}</B><BR/><FONT POINT-SIZE="9">✓ Complete</FONT>>, fillcolor="#22C55E", shape=box];')  # Green-500
+        lines.append(f'        {safe_id} [label=<<FONT POINT-SIZE="8" COLOR="#E2E8F0">Finished</FONT><BR/><B>{fp}</B><BR/><FONT POINT-SIZE="9">✓ Complete</FONT>>, fillcolor="#22C55E", shape=box];')
     lines.append('    }')
     lines.append('')
     
@@ -219,7 +222,7 @@ def generate_routing_graphviz(bom_df):
             step_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
             
             if prev_step_id:
-                lines.append(f'    {prev_step_id} -> {step_id} [color="#60A5FA", penwidth=3];')  # Blue highlight for flow
+                lines.append(f'    {prev_step_id} -> {step_id} [color="#60A5FA", penwidth=1.5, arrowhead=vee];')  # Blue highlight for flow
             
             for inp in step_info['inputs']:
                 inp_id = inp.replace(' ', '_').replace('-', '_')
@@ -230,7 +233,7 @@ def generate_routing_graphviz(bom_df):
         
         if prev_step_id:
             out_id = f"{fa}_OUT".replace(' ', '_').replace('-', '_')
-            lines.append(f'    {prev_step_id} -> {out_id} [color="#22C55E", penwidth=3];')  # Green for final
+            lines.append(f'    {prev_step_id} -> {out_id} [color="#22C55E", penwidth=1.5, arrowhead=vee];')  # Green for final
     
     lines.append('}')
     
