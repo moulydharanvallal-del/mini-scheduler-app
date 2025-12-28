@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 import streamlit as st
+from datetime import datetime
 
 from scheduler_core import (
     run_scheduler,
@@ -28,7 +29,17 @@ with st.sidebar:
 
 # --- Initialize session state with defaults ---
 if "orders_df" not in st.session_state:
-    st.session_state.orders_df = pd.DataFrame(DEFAULT_ORDERS)
+    orders_data = []
+    for o in DEFAULT_ORDERS:
+        row = dict(o)
+        # Convert date string to date object
+        if isinstance(row.get("due_date"), str):
+            try:
+                row["due_date"] = datetime.strptime(row["due_date"], "%Y-%m-%d").date()
+            except:
+                pass
+        orders_data.append(row)
+    st.session_state.orders_df = pd.DataFrame(orders_data)
 
 if "bom_df" not in st.session_state:
     st.session_state.bom_df = pd.DataFrame(DEFAULT_BOM)
@@ -50,11 +61,11 @@ with tab1:
         num_rows="dynamic",
         use_container_width=True,
         column_config={
-            "order_number": st.column_config.TextColumn("Order #", help="Unique order identifier", width="small"),
-            "customer": st.column_config.TextColumn("Customer", help="Customer name", width="medium"),
-            "product": st.column_config.TextColumn("Product", help="Product to manufacture", width="medium"),
-            "quantity": st.column_config.NumberColumn("Quantity", help="Number of units", min_value=1, width="small"),
-            "due_date": st.column_config.DateColumn("Due Date", help="Order due date", format="YYYY-MM-DD", width="small"),
+            "order_number": st.column_config.TextColumn("Order #", help="Unique order identifier"),
+            "customer": st.column_config.TextColumn("Customer", help="Customer name"),
+            "product": st.column_config.TextColumn("Product", help="Product to manufacture"),
+            "quantity": st.column_config.NumberColumn("Quantity", help="Number of units", min_value=1),
+            "due_date": st.column_config.DateColumn("Due Date", help="Order due date", format="YYYY-MM-DD"),
         },
         hide_index=True,
         key="orders_editor"
@@ -73,17 +84,17 @@ with tab2:
         num_rows="dynamic",
         use_container_width=True,
         column_config={
-            "part_name": st.column_config.TextColumn("Part Name", width="medium"),
-            "part_type": st.column_config.SelectboxColumn("Type", options=["FA", "SA", "RW"], width="small"),
-            "inputs_needed": st.column_config.TextColumn("Inputs (comma-sep)", width="medium"),
-            "input_qty_need": st.column_config.TextColumn("Input Qty (comma-sep)", width="small"),
-            "stepnumber": st.column_config.NumberColumn("Step #", min_value=1, width="small"),
-            "workcenter": st.column_config.TextColumn("Work Center", width="medium"),
-            "batchsize": st.column_config.NumberColumn("Batch Size", min_value=1, width="small"),
-            "cycletime": st.column_config.NumberColumn("Cycle Time", min_value=1, width="small"),
-            "human_need": st.column_config.TextColumn("Workers", width="medium"),
-            "human_hours": st.column_config.TextColumn("Hours", width="small"),
-            "human_need_to": st.column_config.TextColumn("Type", width="small"),
+            "part_name": st.column_config.TextColumn("Part Name"),
+            "part_type": st.column_config.SelectboxColumn("Type", options=["FA", "SA", "RW"]),
+            "inputs_needed": st.column_config.TextColumn("Inputs (comma-sep)"),
+            "input_qty_need": st.column_config.TextColumn("Input Qty (comma-sep)"),
+            "stepnumber": st.column_config.TextColumn("Step #"),
+            "workcenter": st.column_config.TextColumn("Work Center"),
+            "batchsize": st.column_config.TextColumn("Batch Size"),
+            "cycletime": st.column_config.TextColumn("Cycle Time"),
+            "human_need": st.column_config.TextColumn("Workers"),
+            "human_hours": st.column_config.TextColumn("Hours"),
+            "human_need_to": st.column_config.TextColumn("Type"),
         },
         hide_index=True,
         key="bom_editor"
@@ -103,8 +114,8 @@ with tab3:
             num_rows="dynamic",
             use_container_width=True,
             column_config={
-                "work_center": st.column_config.TextColumn("Work Center", help="Name of the work center", width="large"),
-                "num_machines": st.column_config.NumberColumn("# Machines", help="Number of parallel machines/stations", min_value=1, max_value=100, width="medium"),
+                "work_center": st.column_config.TextColumn("Work Center", help="Name of the work center"),
+                "num_machines": st.column_config.NumberColumn("# Machines", help="Number of parallel machines/stations", min_value=1, max_value=100),
             },
             hide_index=True,
             key="capacity_editor"
@@ -159,6 +170,7 @@ if run:
     try:
         orders = st.session_state.orders_df.to_dict("records")
         
+        # Convert due_date to string format
         for o in orders:
             if hasattr(o.get("due_date"), "strftime"):
                 o["due_date"] = o["due_date"].strftime("%Y-%m-%d")
@@ -167,12 +179,14 @@ if run:
         
         bom = st.session_state.bom_df.to_dict("records")
         
+        # Clean up BOM - handle empty values for RW type
         for row in bom:
             for key in row:
                 if pd.isna(row[key]):
                     row[key] = ""
-                elif isinstance(row[key], float) and row[key] == int(row[key]):
-                    row[key] = int(row[key])
+                elif isinstance(row[key], float):
+                    if row[key] == int(row[key]):
+                        row[key] = int(row[key])
         
         cap_df = st.session_state.capacity_df
         capacity = dict(zip(cap_df["work_center"], cap_df["num_machines"].astype(int)))
