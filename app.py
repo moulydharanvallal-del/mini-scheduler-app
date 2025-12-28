@@ -327,7 +327,11 @@ def generate_routing_graphviz(bom_df, view_mode='part'):
     
     lines.append('}')
     
+
     return '\n'.join(lines)
+
+# --- Helper to clean data for display ---
+def clean_for_display(data):
     """Convert tuples and complex objects to strings for display"""
     if isinstance(data, list):
         df = pd.DataFrame(data)
