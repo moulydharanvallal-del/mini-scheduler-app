@@ -14,6 +14,16 @@ st.set_page_config(page_title="Mini Manufacturing Scheduler", layout="wide")
 st.title("🏭 Mini Manufacturing Scheduler")
 st.caption("Enter your data in the tables below, then click Run to generate a schedule.")
 
+# --- Helper to clean data for display ---
+def clean_for_display(data):
+    """Convert tuples and complex objects to strings for display"""
+    if isinstance(data, list):
+        df = pd.DataFrame(data)
+        for col in df.columns:
+            df[col] = df[col].apply(lambda x: str(x) if isinstance(x, (tuple, list, dict)) else x)
+        return df
+    return data
+
 # --- Sidebar ---
 with st.sidebar:
     st.header("⚙️ Controls")
@@ -21,17 +31,23 @@ with st.sidebar:
     run = st.button("🚀 Run Scheduler", type="primary", use_container_width=True)
     
     st.divider()
-    st.markdown("**Tips:**")
-    st.markdown("- Click cells to edit")
-    st.markdown("- Click + to add rows")
-    st.markdown("- Press Delete to remove rows")
+    if st.button("🔄 Reset to Sample Data"):
+        for key in ["orders_df", "bom_df", "capacity_df", "scheduled", "work_orders", "plan", "fig"]:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
 
 # --- Initialize session state with defaults ---
 if "orders_df" not in st.session_state:
-    st.session_state.orders_df = pd.DataFrame(DEFAULT_ORDERS)
+    df = pd.DataFrame(DEFAULT_ORDERS)
+    st.session_state.orders_df = df
 
 if "bom_df" not in st.session_state:
-    st.session_state.bom_df = pd.DataFrame(DEFAULT_BOM).astype(str).replace("nan", "")
+    df = pd.DataFrame(DEFAULT_BOM)
+    # Convert all to string to avoid type issues
+    for col in df.columns:
+        df[col] = df[col].astype(str).replace("nan", "").replace("<NA>", "")
+    st.session_state.bom_df = df
 
 if "capacity_df" not in st.session_state:
     cap_list = [{"work_center": k, "num_machines": v} for k, v in DEFAULT_CAPACITY.items()]
@@ -43,9 +59,9 @@ tab1, tab2, tab3, tab4 = st.tabs(["📋 Customer Orders", "🔧 BOM / Routing", 
 # --- Tab 1: Customer Orders ---
 with tab1:
     st.subheader("Customer Orders")
-    st.caption("Add your customer orders here. Click cells to edit, use + button to add rows.")
+    st.caption("Edit the table below. Changes are saved automatically.")
     
-    orders_df = st.data_editor(
+    edited_orders = st.data_editor(
         st.session_state.orders_df,
         num_rows="dynamic",
         use_container_width=True,
@@ -59,16 +75,19 @@ with tab1:
         hide_index=True,
         key="orders_editor"
     )
-    st.session_state.orders_df = orders_df
+    # Update session state with edits
+    st.session_state.orders_df = edited_orders
+    
+    st.caption(f"📌 {len(edited_orders)} orders loaded")
 
 # --- Tab 2: BOM / Routing ---
 with tab2:
     st.subheader("Bill of Materials & Routing")
-    st.caption("Define your products, sub-assemblies, and raw materials with their manufacturing steps.")
+    st.caption("Define your products, sub-assemblies, and raw materials.")
     
     st.info("**Part Types:** FA = Final Assembly, SA = Sub-Assembly, RW = Raw Material")
     
-    bom_df = st.data_editor(
+    edited_bom = st.data_editor(
         st.session_state.bom_df,
         num_rows="dynamic",
         use_container_width=True,
@@ -88,7 +107,9 @@ with tab2:
         hide_index=True,
         key="bom_editor"
     )
-    st.session_state.bom_df = bom_df
+    st.session_state.bom_df = edited_bom
+    
+    st.caption(f"📌 {len(edited_bom)} BOM rows loaded")
 
 # --- Tab 3: Work Center Capacity ---
 with tab3:
@@ -98,7 +119,7 @@ with tab3:
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        capacity_df = st.data_editor(
+        edited_capacity = st.data_editor(
             st.session_state.capacity_df,
             num_rows="dynamic",
             use_container_width=True,
@@ -109,11 +130,11 @@ with tab3:
             hide_index=True,
             key="capacity_editor"
         )
-        st.session_state.capacity_df = capacity_df
+        st.session_state.capacity_df = edited_capacity
     
     with col2:
-        st.metric("Total Work Centers", len(capacity_df))
-        total_machines = int(capacity_df["num_machines"].sum()) if not capacity_df.empty else 0
+        st.metric("Total Work Centers", len(edited_capacity))
+        total_machines = int(edited_capacity["num_machines"].sum()) if not edited_capacity.empty else 0
         st.metric("Total Machines", total_machines)
 
 # --- Tab 4: Results ---
@@ -124,7 +145,7 @@ with tab4:
     fig = st.session_state.get("fig")
 
     if not scheduled:
-        st.info("�� Click **Run Scheduler** in the sidebar to generate results.")
+        st.info("👈 Click **Run Scheduler** in the sidebar to generate results.")
     else:
         c1, c2, c3 = st.columns(3)
         c1.metric("✅ Scheduled Runs", len(scheduled))
@@ -135,16 +156,19 @@ with tab4:
             st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Scheduled Runs")
-        st.dataframe(scheduled, use_container_width=True, height=320)
+        # Clean data for display (convert tuples to strings)
+        scheduled_df = clean_for_display(scheduled)
+        st.dataframe(scheduled_df, use_container_width=True, height=320)
 
         with st.expander("📦 Work Orders Detail"):
-            st.dataframe(work_orders, use_container_width=True, height=260)
+            wo_df = clean_for_display(work_orders)
+            st.dataframe(wo_df, use_container_width=True, height=260)
 
         with st.expander("📒 Planning Ledger"):
-            st.dataframe(plan.get("ledger", []), use_container_width=True, height=260)
+            ledger_df = clean_for_display(plan.get("ledger", []))
+            st.dataframe(ledger_df, use_container_width=True, height=260)
         
         st.divider()
-        scheduled_df = pd.DataFrame(scheduled)
         csv = scheduled_df.to_csv(index=False)
         st.download_button(
             "📥 Download Schedule (CSV)",
@@ -157,6 +181,7 @@ with tab4:
 # --- Run Scheduler ---
 if run:
     try:
+        # Get current data from session state
         orders = st.session_state.orders_df.to_dict("records")
         
         # Ensure due_date is string
@@ -190,7 +215,8 @@ if run:
         st.session_state["fig"] = fig
         
         st.success(f"✅ Done! Generated {len(scheduled)} scheduled runs.")
-        st.info("👉 Go to the **Results** tab to view the schedule and Gantt chart.")
+        st.rerun()  # Rerun to show results tab
 
     except Exception as e:
         st.error(f"❌ Error: {str(e)}")
+        st.exception(e)  # Show full traceback for debugging
