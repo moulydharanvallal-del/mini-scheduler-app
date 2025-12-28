@@ -169,7 +169,7 @@ def generate_routing_graphviz(bom_df):
         wc = list(info['workcenters'])[0] if info['workcenters'] else ''
         color = get_modern_color(wc)
         safe_id = sa.replace(' ', '_').replace('-', '_')
-        lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="2" CELLSPACING="0"><TR><TD ALIGN="CENTER"><B>{sa}</B><BR/><FONT POINT-SIZE="8" COLOR="#E2E8F0">WC: {wc}</FONT></TD></TR></TABLE>>, fillcolor="{color}"];')
+        lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="2" CELLSPACING="0"><TR><TD ALIGN="LEFT"><B>{sa}</B><BR/><FONT POINT-SIZE="8" COLOR="#E2E8F0">WC: {wc}</FONT></TD></TR></TABLE>>, fillcolor="{color}"];')
     
     # FA steps
     for fa in sorted(final_products):
@@ -179,7 +179,7 @@ def generate_routing_graphviz(bom_df):
             wc = step_info['workcenter']
             color = get_modern_color(wc)
             safe_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
-            lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="2" CELLSPACING="0"><TR><TD ALIGN="CENTER"><B>{fa}</B><BR/><FONT POINT-SIZE="8">Step {step}</FONT><BR/><FONT POINT-SIZE="8" COLOR="#E2E8F0">WC: {wc}</FONT></TD></TR></TABLE>>, fillcolor="{color}"];')
+            lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="2" CELLSPACING="0"><TR><TD ALIGN="LEFT"><B>{fa}</B><BR/><FONT POINT-SIZE="8">Step {step} | WC: {wc}</FONT></TD></TR></TABLE>>, fillcolor="{color}"];')
     
     lines.append('    }')
     lines.append('')
