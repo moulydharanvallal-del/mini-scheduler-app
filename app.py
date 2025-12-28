@@ -1,4 +1,5 @@
 import json
+import pandas as pd
 import streamlit as st
 
 from scheduler_core import (
@@ -10,56 +11,173 @@ from scheduler_core import (
 
 st.set_page_config(page_title="Mini Manufacturing Scheduler", layout="wide")
 
-st.title("Mini Manufacturing Scheduler")
-st.caption("Paste/edit JSON inputs, run the scheduler, and share the app with others.")
+st.title("🏭 Mini Manufacturing Scheduler")
+st.caption("Enter your data in the tables below, then click Run to generate a schedule.")
 
+# --- Sidebar ---
 with st.sidebar:
-    st.header("Run")
+    st.header("⚙️ Controls")
     show_chart = st.checkbox("Show Gantt chart", value=True)
-    run = st.button("Run scheduler", type="primary")
+    run = st.button("🚀 Run Scheduler", type="primary", use_container_width=True)
+    
+    st.divider()
+    st.markdown("**Tips:**")
+    st.markdown("- Click cells to edit")
+    st.markdown("- Click + to add rows")
+    st.markdown("- Press Delete to remove rows")
 
-tab1, tab2, tab3 = st.tabs(["Inputs", "Results", "How to share"])
+# --- Initialize session state with defaults ---
+if "orders_df" not in st.session_state:
+    st.session_state.orders_df = pd.DataFrame(DEFAULT_ORDERS)
 
+if "bom_df" not in st.session_state:
+    st.session_state.bom_df = pd.DataFrame(DEFAULT_BOM)
+
+if "capacity_df" not in st.session_state:
+    cap_list = [{"work_center": k, "num_machines": v} for k, v in DEFAULT_CAPACITY.items()]
+    st.session_state.capacity_df = pd.DataFrame(cap_list)
+
+# --- Tabs ---
+tab1, tab2, tab3, tab4 = st.tabs(["📋 Customer Orders", "🔧 BOM / Routing", "🏭 Work Centers", "📊 Results"])
+
+# --- Tab 1: Customer Orders ---
 with tab1:
-    st.subheader("Customer orders (JSON list)")
-    orders_text = st.text_area(
-        "orders_json",
-        value=json.dumps(DEFAULT_ORDERS, indent=2),
-        height=240,
-        label_visibility="collapsed",
+    st.subheader("Customer Orders")
+    st.caption("Add your customer orders here. Click cells to edit, use + button to add rows.")
+    
+    orders_df = st.data_editor(
+        st.session_state.orders_df,
+        num_rows="dynamic",
+        use_container_width=True,
+        column_config={
+            "order_number": st.column_config.TextColumn("Order #", help="Unique order identifier", width="small"),
+            "customer": st.column_config.TextColumn("Customer", help="Customer name", width="medium"),
+            "product": st.column_config.TextColumn("Product", help="Product to manufacture", width="medium"),
+            "quantity": st.column_config.NumberColumn("Quantity", help="Number of units", min_value=1, width="small"),
+            "due_date": st.column_config.DateColumn("Due Date", help="Order due date", format="YYYY-MM-DD", width="small"),
+        },
+        hide_index=True,
+        key="orders_editor"
     )
+    st.session_state.orders_df = orders_df
 
-    st.subheader("BOM / routing data (JSON list)")
-    bom_text = st.text_area(
-        "bom_json",
-        value=json.dumps(DEFAULT_BOM, indent=2),
-        height=320,
-        label_visibility="collapsed",
+# --- Tab 2: BOM / Routing ---
+with tab2:
+    st.subheader("Bill of Materials & Routing")
+    st.caption("Define your products, sub-assemblies, and raw materials with their manufacturing steps.")
+    
+    st.info("**Part Types:** FA = Final Assembly, SA = Sub-Assembly, RW = Raw Material")
+    
+    bom_df = st.data_editor(
+        st.session_state.bom_df,
+        num_rows="dynamic",
+        use_container_width=True,
+        column_config={
+            "part_name": st.column_config.TextColumn("Part Name", width="medium"),
+            "part_type": st.column_config.SelectboxColumn("Type", options=["FA", "SA", "RW"], width="small"),
+            "inputs_needed": st.column_config.TextColumn("Inputs (comma-sep)", width="medium"),
+            "input_qty_need": st.column_config.TextColumn("Input Qty (comma-sep)", width="small"),
+            "stepnumber": st.column_config.NumberColumn("Step #", min_value=1, width="small"),
+            "workcenter": st.column_config.TextColumn("Work Center", width="medium"),
+            "batchsize": st.column_config.NumberColumn("Batch Size", min_value=1, width="small"),
+            "cycletime": st.column_config.NumberColumn("Cycle Time", min_value=1, width="small"),
+            "human_need": st.column_config.TextColumn("Workers", width="medium"),
+            "human_hours": st.column_config.TextColumn("Hours", width="small"),
+            "human_need_to": st.column_config.TextColumn("Type", width="small"),
+        },
+        hide_index=True,
+        key="bom_editor"
     )
+    st.session_state.bom_df = bom_df
 
-    st.subheader("Work-center capacity (JSON object)")
-    cap_text = st.text_area(
-        "capacity_json",
-        value=json.dumps(DEFAULT_CAPACITY, indent=2),
-        height=220,
-        label_visibility="collapsed",
-    )
+# --- Tab 3: Work Center Capacity ---
+with tab3:
+    st.subheader("Work Center Capacity")
+    st.caption("Define how many machines/stations are available at each work center.")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        capacity_df = st.data_editor(
+            st.session_state.capacity_df,
+            num_rows="dynamic",
+            use_container_width=True,
+            column_config={
+                "work_center": st.column_config.TextColumn("Work Center", help="Name of the work center", width="large"),
+                "num_machines": st.column_config.NumberColumn("# Machines", help="Number of parallel machines/stations", min_value=1, max_value=100, width="medium"),
+            },
+            hide_index=True,
+            key="capacity_editor"
+        )
+        st.session_state.capacity_df = capacity_df
+    
+    with col2:
+        st.metric("Total Work Centers", len(capacity_df))
+        total_machines = int(capacity_df["num_machines"].sum()) if not capacity_df.empty else 0
+        st.metric("Total Machines", total_machines)
 
-    st.info("Tip: keep keys/fields consistent. If JSON is invalid, the run will fail with a helpful error.")
+# --- Tab 4: Results ---
+with tab4:
+    scheduled = st.session_state.get("scheduled")
+    work_orders = st.session_state.get("work_orders")
+    plan = st.session_state.get("plan")
+    fig = st.session_state.get("fig")
 
-def _parse_json(name, txt):
-    try:
-        return json.loads(txt)
-    except Exception as e:
-        raise ValueError(f"{name} JSON error: {e}")
+    if not scheduled:
+        st.info("👈 Click **Run Scheduler** in the sidebar to generate results.")
+    else:
+        c1, c2, c3 = st.columns(3)
+        c1.metric("✅ Scheduled Runs", len(scheduled))
+        c2.metric("📦 Work Orders", len(work_orders) if work_orders else 0)
+        c3.metric("📒 Ledger Rows", len(plan.get("ledger", [])) if plan else 0)
 
+        if fig is not None:
+            st.plotly_chart(fig, use_container_width=True)
+
+        st.subheader("Scheduled Runs")
+        st.dataframe(scheduled, use_container_width=True, height=320)
+
+        with st.expander("📦 Work Orders Detail"):
+            st.dataframe(work_orders, use_container_width=True, height=260)
+
+        with st.expander("📒 Planning Ledger"):
+            st.dataframe(plan.get("ledger", []), use_container_width=True, height=260)
+        
+        st.divider()
+        scheduled_df = pd.DataFrame(scheduled)
+        csv = scheduled_df.to_csv(index=False)
+        st.download_button(
+            "📥 Download Schedule (CSV)",
+            csv,
+            "schedule.csv",
+            "text/csv",
+            use_container_width=True
+        )
+
+# --- Run Scheduler ---
 if run:
     try:
-        orders = _parse_json("Orders", orders_text)
-        bom = _parse_json("BOM", bom_text)
-        capacity = _parse_json("Capacity", cap_text)
+        orders = st.session_state.orders_df.to_dict("records")
+        
+        for o in orders:
+            if hasattr(o.get("due_date"), "strftime"):
+                o["due_date"] = o["due_date"].strftime("%Y-%m-%d")
+            elif pd.notna(o.get("due_date")):
+                o["due_date"] = str(o["due_date"])[:10]
+        
+        bom = st.session_state.bom_df.to_dict("records")
+        
+        for row in bom:
+            for key in row:
+                if pd.isna(row[key]):
+                    row[key] = ""
+                elif isinstance(row[key], float) and row[key] == int(row[key]):
+                    row[key] = int(row[key])
+        
+        cap_df = st.session_state.capacity_df
+        capacity = dict(zip(cap_df["work_center"], cap_df["num_machines"].astype(int)))
 
-        with st.spinner("Scheduling..."):
+        with st.spinner("🔄 Running scheduler..."):
             scheduled, work_orders, plan, fig = run_scheduler(
                 bom, orders, capacity, show_chart=show_chart
             )
@@ -68,59 +186,9 @@ if run:
         st.session_state["work_orders"] = work_orders
         st.session_state["plan"] = plan
         st.session_state["fig"] = fig
-        st.success(f"Done. Scheduled runs: {len(scheduled)} | Work orders: {len(work_orders)}")
+        
+        st.success(f"✅ Done! Generated {len(scheduled)} scheduled runs.")
+        st.info("👉 Go to the **Results** tab to view the schedule and Gantt chart.")
 
     except Exception as e:
-        st.error(str(e))
-
-with tab2:
-    scheduled = st.session_state.get("scheduled")
-    work_orders = st.session_state.get("work_orders")
-    plan = st.session_state.get("plan")
-    fig = st.session_state.get("fig")
-
-    if not scheduled:
-        st.warning("Run the scheduler from the sidebar to see results.")
-    else:
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Scheduled rows", len(scheduled))
-        c2.metric("Work orders", len(work_orders) if work_orders else 0)
-        c3.metric("Ledger rows", len(plan.get("ledger", [])) if plan else 0)
-
-        if fig is not None:
-            st.plotly_chart(fig, use_container_width=True)
-
-        st.subheader("Scheduled table")
-        st.dataframe(scheduled, use_container_width=True, height=320)
-
-        with st.expander("Work orders"):
-            st.dataframe(work_orders, use_container_width=True, height=260)
-
-        with st.expander("Plan ledger"):
-            st.dataframe(plan.get("ledger", []), use_container_width=True, height=260)
-
-with tab3:
-    st.subheader("Share options (lightweight)")
-    st.markdown(
-        """
-**Option A (easiest): Streamlit Community Cloud**
-1. Put these files in a GitHub repo
-2. In Streamlit Cloud, deploy `app.py`
-3. Share the URL
-
-**Option B (internal): run locally**
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-streamlit run app.py
-```
-
-**Option C (single binary): PyInstaller**
-If you *need* a no-Python install, you can bundle a binary (larger download):
-```bash
-pip install pyinstaller
-pyinstaller --onefile --noconsole app.py
-```
-        """
-    )
+        st.error(f"❌ Error: {str(e)}")
