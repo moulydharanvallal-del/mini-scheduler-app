@@ -619,67 +619,40 @@ def run_manufacturing_scheduler():
 # ----------------------------
 
 customer_orders = [
-    {'order_number': 'SO-001', 'customer': 'Tesla Motors', 'product': 'MOTOR_ASSY', 'quantity': 450, 'due_date': '2024-12-15'},
-    {'order_number': 'SO-002', 'customer': 'Ford Motor Co', 'product': 'MOTOR_ASSY', 'quantity': 3200, 'due_date': '2024-12-01'},
-    {'order_number': 'SO-003', 'customer': 'Rivian Automotive', 'product': 'PUMP_UNIT', 'quantity': 1500, 'due_date': '2025-01-05'},
+    {'order_number': 'ORD-001', 'customer': 'Acme Corp', 'product': 'WIDGET_A', 'quantity': 100, 'due_date': '2025-01-15'},
+    {'order_number': 'ORD-002', 'customer': 'Beta Inc', 'product': 'WIDGET_A', 'quantity': 50, 'due_date': '2025-01-20'},
+    {'order_number': 'ORD-003', 'customer': 'Gamma LLC', 'product': 'GADGET_B', 'quantity': 80, 'due_date': '2025-01-18'},
 ]
 
 bom_data = [
-    # MOTOR_ASSY - Final Assembly (2 steps)
-    {'part_name': 'MOTOR_ASSY', 'part_type': 'FA', 'inputs_needed': 'ROTOR,STATOR,HOUSING', 'input_qty_need': '1,1,1', 'stepnumber': 1, 'workcenter': 'WC_MOTOR_ASSY', 'batchsize': 20, 'cycletime': 45, 'human_need': 'TECH_A,TECH_B', 'human_hours': '40,30', 'human_need_to': 'TH,TH'},
-    {'part_name': 'MOTOR_ASSY', 'part_type': 'FA', 'inputs_needed': 'WIRING,CONNECTORS', 'input_qty_need': '5,2', 'stepnumber': 2, 'workcenter': 'WC_ELECTRICAL', 'batchsize': 20, 'cycletime': 25, 'human_need': 'ELECTRICIAN', 'human_hours': '20', 'human_need_to': 'TH'},
+    # WIDGET_A - Simple product with 2 steps
+    {'part_name': 'WIDGET_A', 'part_type': 'FA', 'inputs_needed': 'FRAME,COVER', 'input_qty_need': '1,1', 'stepnumber': 1, 'workcenter': 'ASSEMBLY', 'batchsize': 10, 'cycletime': 30, 'human_need': 'WORKER_A', 'human_hours': '25', 'human_need_to': 'TH'},
+    {'part_name': 'WIDGET_A', 'part_type': 'FA', 'inputs_needed': 'PAINT', 'input_qty_need': '1', 'stepnumber': 2, 'workcenter': 'FINISHING', 'batchsize': 10, 'cycletime': 15, 'human_need': 'WORKER_B', 'human_hours': '10', 'human_need_to': 'TH'},
 
-    # PUMP_UNIT - Final Assembly (3 steps)
-    {'part_name': 'PUMP_UNIT', 'part_type': 'FA', 'inputs_needed': 'PUMP_BODY,IMPELLER', 'input_qty_need': '1,1', 'stepnumber': 1, 'workcenter': 'WC_MACHINING', 'batchsize': 15, 'cycletime': 60, 'human_need': 'MACHINIST', 'human_hours': '50', 'human_need_to': 'TH'},
-    {'part_name': 'PUMP_UNIT', 'part_type': 'FA', 'inputs_needed': 'SEALS,BEARINGS', 'input_qty_need': '3,2', 'stepnumber': 2, 'workcenter': 'WC_ASSEMBLY', 'batchsize': 15, 'cycletime': 30, 'human_need': 'ASSEMBLER', 'human_hours': '25', 'human_need_to': 'TH'},
-    {'part_name': 'PUMP_UNIT', 'part_type': 'FA', 'inputs_needed': 'PAINT,LABELS', 'input_qty_need': '1,2', 'stepnumber': 3, 'workcenter': 'WC_FINISHING', 'batchsize': 15, 'cycletime': 15, 'human_need': 'PAINTER', 'human_hours': '10', 'human_need_to': 'ST'},
+    # GADGET_B - Another simple product with 2 steps  
+    {'part_name': 'GADGET_B', 'part_type': 'FA', 'inputs_needed': 'BASE,TOP', 'input_qty_need': '1,1', 'stepnumber': 1, 'workcenter': 'MACHINING', 'batchsize': 20, 'cycletime': 45, 'human_need': 'WORKER_C', 'human_hours': '40', 'human_need_to': 'TH'},
+    {'part_name': 'GADGET_B', 'part_type': 'FA', 'inputs_needed': 'SCREWS', 'input_qty_need': '4', 'stepnumber': 2, 'workcenter': 'ASSEMBLY', 'batchsize': 20, 'cycletime': 20, 'human_need': 'WORKER_A', 'human_hours': '15', 'human_need_to': 'TH'},
 
-    # SUB-ASSEMBLIES
-    {'part_name': 'ROTOR', 'part_type': 'SA', 'inputs_needed': 'STEEL_ROD,MAGNETS', 'input_qty_need': '1,8', 'stepnumber': 1, 'workcenter': 'WC_ROTOR_WIND', 'batchsize': 50, 'cycletime': 90, 'human_need': 'WINDER', 'human_hours': '80', 'human_need_to': 'TH'},
-    {'part_name': 'ROTOR', 'part_type': 'SA', 'inputs_needed': 'BALANCING_WEIGHTS', 'input_qty_need': '2', 'stepnumber': 2, 'workcenter': 'WC_BALANCING', 'batchsize': 50, 'cycletime': 30, 'human_need': 'TECH_C', 'human_hours': '25', 'human_need_to': 'TH'},
+    # Sub-assemblies
+    {'part_name': 'FRAME', 'part_type': 'SA', 'inputs_needed': 'STEEL', 'input_qty_need': '2', 'stepnumber': 1, 'workcenter': 'MACHINING', 'batchsize': 25, 'cycletime': 60, 'human_need': 'WORKER_C', 'human_hours': '50', 'human_need_to': 'TH'},
+    {'part_name': 'COVER', 'part_type': 'SA', 'inputs_needed': 'PLASTIC', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': 'MOLDING', 'batchsize': 50, 'cycletime': 20, 'human_need': 'WORKER_D', 'human_hours': '15', 'human_need_to': 'TH'},
+    {'part_name': 'BASE', 'part_type': 'SA', 'inputs_needed': 'ALUMINUM', 'input_qty_need': '3', 'stepnumber': 1, 'workcenter': 'CASTING', 'batchsize': 15, 'cycletime': 90, 'human_need': 'WORKER_E', 'human_hours': '80', 'human_need_to': 'TH'},
+    {'part_name': 'TOP', 'part_type': 'SA', 'inputs_needed': 'PLASTIC', 'input_qty_need': '2', 'stepnumber': 1, 'workcenter': 'MOLDING', 'batchsize': 50, 'cycletime': 25, 'human_need': 'WORKER_D', 'human_hours': '20', 'human_need_to': 'TH'},
 
-    {'part_name': 'STATOR', 'part_type': 'SA', 'inputs_needed': 'COPPER_WIRE,STEEL_CORE', 'input_qty_need': '10,1', 'stepnumber': 1, 'workcenter': 'WC_STATOR_WIND', 'batchsize': 30, 'cycletime': 120, 'human_need': 'WINDER', 'human_hours': '100', 'human_need_to': 'TH'},
-
-    {'part_name': 'HOUSING', 'part_type': 'SA', 'inputs_needed': 'ALUMINUM,SCREWS', 'input_qty_need': '5,12', 'stepnumber': 1, 'workcenter': 'WC_CASTING', 'batchsize': 25, 'cycletime': 180, 'human_need': 'CASTER,HELPER', 'human_hours': '150,100', 'human_need_to': 'TH,ST'},
-    {'part_name': 'HOUSING', 'part_type': 'SA', 'inputs_needed': 'PRIMER', 'input_qty_need': '1', 'stepnumber': 2, 'workcenter': 'WC_COATING', 'batchsize': 25, 'cycletime': 45, 'human_need': 'COATER', 'human_hours': '30', 'human_need_to': 'ST'},
-
-    {'part_name': 'PUMP_BODY', 'part_type': 'SA', 'inputs_needed': 'CAST_IRON,GASKETS', 'input_qty_need': '8,1', 'stepnumber': 1, 'workcenter': 'WC_HEAVY_MACHINE', 'batchsize': 10, 'cycletime': 240, 'human_need': 'MACHINIST,OPERATOR', 'human_hours': '200,150', 'human_need_to': 'TH,TH'},
-
-    {'part_name': 'IMPELLER', 'part_type': 'SA', 'inputs_needed': 'STAINLESS_STEEL', 'input_qty_need': '3', 'stepnumber': 1, 'workcenter': 'WC_PRECISION', 'batchsize': 20, 'cycletime': 150, 'human_need': 'PRECISION_TECH', 'human_hours': '120', 'human_need_to': 'TH'},
-
-    # RAW MATERIALS - Infinite supply
-    {'part_name': 'STEEL_ROD', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'MAGNETS', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'BALANCING_WEIGHTS', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'COPPER_WIRE', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'STEEL_CORE', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    # Raw Materials (infinite supply)
+    {'part_name': 'STEEL', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'PLASTIC', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
     {'part_name': 'ALUMINUM', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'SCREWS', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'PRIMER', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'WIRING', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'CONNECTORS', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'CAST_IRON', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'GASKETS', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'STAINLESS_STEEL', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'SEALS', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'BEARINGS', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
     {'part_name': 'PAINT', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'LABELS', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'SCREWS', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
 ]
 
 work_center_capacity = {
-    'WC_CASTING': 1,
-    'WC_COATING': 1,
-    'WC_PRECISION': 2,
-    'WC_HEAVY_MACHINE': 10,
-    'WC_MACHINING': 3,
-    'WC_ASSEMBLY': 2,
-    'WC_FINISHING': 1,
-    'WC_ROTOR_WIND': 2,
-    'WC_BALANCING': 1,
-    'WC_STATOR_WIND': 1,
-    'WC_MOTOR_ASSY': 2,
-    'WC_ELECTRICAL': 1,
+    'ASSEMBLY': 2,
+    'FINISHING': 1,
+    'MACHINING': 2,
+    'MOLDING': 1,
+    'CASTING': 1,
 }
 
 def run_scheduler(bom_data, customer_orders, work_center_capacity, *, base_start=None, show_chart=True):
