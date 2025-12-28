@@ -225,7 +225,7 @@ def calculate_total_time(equipment, current_product, cycle_time, changeover_time
         equipment_changeover_product[equipment] = current_product
         return cycle_time + changeover_time, True
 
-def schedule_single_configuration_AND_gate_stepbins(runs, factory_equipment, changeover_time=10):
+def schedule_single_configuration_AND_gate_stepbins(runs, factory_equipment, changeover_time=0):
     import heapq
     from collections import defaultdict
 
@@ -596,7 +596,7 @@ def run_manufacturing_scheduler():
     # Schedule work orders
     factory_equipment = dict(work_center_capacity)
     scheduled = schedule_single_configuration_AND_gate_stepbins(
-        work_orders, factory_equipment, changeover_time=10
+        work_orders, factory_equipment, changeover_time=0
     )
 
     # Generate Gantt chart
@@ -605,7 +605,7 @@ def run_manufacturing_scheduler():
         bom_index=bom_index,
         title='Manufacturing Schedule',
         base_start=None,
-        time_units='h',
+        time_units='m',
         color_by='order',
         show_due_date_lines=True
     )
@@ -791,7 +791,7 @@ def run_scheduler(bom_data, customer_orders, work_center_capacity, *, base_start
                 bom_index=bom_index,
                 title='Manufacturing Schedule',
                 base_start=base_start,
-                time_units='h',
+                time_units='m',
                 color_by='order',
                 show_due_date_lines=True
             )
