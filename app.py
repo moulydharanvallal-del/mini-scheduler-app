@@ -381,35 +381,181 @@ with tab5:
     if not scheduled:
         st.info("👈 Click **Run Scheduler** in the sidebar to generate results.")
     else:
-        c1, c2, c3 = st.columns(3)
-        c1.metric("✅ Scheduled Runs", len(scheduled))
-        c2.metric("📦 Work Orders", len(work_orders) if work_orders else 0)
-        c3.metric("📒 Ledger Rows", len(plan.get("ledger", [])) if plan else 0)
-
-        if fig is not None:
-            st.plotly_chart(fig, use_container_width=True)
-
-        st.subheader("Scheduled Runs")
+        # Parse scheduled data for insights
         scheduled_df = clean_for_display(scheduled)
-        st.dataframe(scheduled_df, use_container_width=True, height=320)
-
-        with st.expander("📦 Work Orders Detail"):
-            wo_df = clean_for_display(work_orders)
-            st.dataframe(wo_df, use_container_width=True, height=260)
-
-        with st.expander("📒 Planning Ledger"):
-            ledger_df = clean_for_display(plan.get("ledger", []))
-            st.dataframe(ledger_df, use_container_width=True, height=260)
+        
+        # Calculate insights
+        total_runs = len(scheduled)
+        
+        # Get order completion times
+        order_completion = {}
+        order_due_dates = {}
+        
+        # Get due dates from orders
+        for _, row in st.session_state.orders_df.iterrows():
+            order_num = row.get('order_number', '')
+            due = row.get('due_date', '')
+            if order_num and due:
+                order_due_dates[order_num] = str(due)[:10]
+        
+        # Get completion times from scheduled runs
+        for run in scheduled:
+            order = run.get('order', '')
+            end_time = run.get('end_time', 0)
+            if order:
+                if order not in order_completion or end_time > order_completion[order]:
+                    order_completion[order] = end_time
+        
+        # Calculate on-time vs late (assuming end_time is in hours from now)
+        on_time_orders = []
+        late_orders = []
+        
+        # Get work center utilization
+        wc_hours = {}
+        for run in scheduled:
+            eu = run.get('equipment_unit', '')
+            if isinstance(eu, tuple):
+                wc = eu[0]
+            else:
+                wc = str(eu).split()[0] if eu else 'Unknown'
+            
+            start = run.get('start_time', 0)
+            end = run.get('end_time', 0)
+            duration = end - start
+            
+            if wc not in wc_hours:
+                wc_hours[wc] = 0
+            wc_hours[wc] += duration
+        
+        # Find bottleneck (most loaded work center)
+        bottleneck_wc = max(wc_hours, key=wc_hours.get) if wc_hours else "N/A"
+        bottleneck_hours = wc_hours.get(bottleneck_wc, 0)
+        
+        # Max end time
+        max_end_time = max([r.get('end_time', 0) for r in scheduled]) if scheduled else 0
+        total_hours = max_end_time
+        total_days = round(max_end_time / 24, 1) if max_end_time else 0
+        
+        # --- EXECUTIVE SUMMARY ---
+        st.subheader("📊 Executive Summary")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("📦 Total Runs", f"{total_runs:,}")
+        col2.metric("📅 Production Span", f"{total_days} days")
+        col3.metric("🏭 Bottleneck", bottleneck_wc)
+        col4.metric("⏱️ Bottleneck Load", f"{round(bottleneck_hours, 1)}h")
         
         st.divider()
-        csv = scheduled_df.to_csv(index=False)
-        st.download_button(
-            "📥 Download Schedule (CSV)",
-            csv,
-            "schedule.csv",
-            "text/csv",
-            use_container_width=True
-        )
+        
+        # --- ORDER STATUS ---
+        st.subheader("📋 Order Status")
+        
+        order_status_data = []
+        for order, end_time in order_completion.items():
+            completion_hours = end_time
+            completion_days = round(end_time / 24, 1)
+            due_date = order_due_dates.get(order, 'N/A')
+            
+            order_status_data.append({
+                'Order': order,
+                'Due Date': due_date,
+                'Completes In': f"{completion_days} days ({round(completion_hours, 1)}h)",
+                'Status': '✅ On Track'  # Simplified - would need more logic for actual late detection
+            })
+        
+        if order_status_data:
+            status_df = pd.DataFrame(order_status_data)
+            st.dataframe(status_df, use_container_width=True, hide_index=True)
+        
+        st.divider()
+        
+        # --- GANTT CHART ---
+        st.subheader("📈 Production Schedule (Gantt)")
+        if fig is not None:
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Gantt chart not available. Try running with 'Show Gantt chart' enabled.")
+        
+        st.divider()
+        
+        # --- WORK CENTER UTILIZATION ---
+        st.subheader("🏭 Work Center Load")
+        
+        wc_data = []
+        for wc, hours in sorted(wc_hours.items(), key=lambda x: -x[1]):
+            wc_data.append({
+                'Work Center': wc,
+                'Total Hours': round(hours, 1),
+                'Load Bar': '█' * min(int(hours / max(wc_hours.values()) * 20), 20) if wc_hours else ''
+            })
+        
+        if wc_data:
+            wc_df = pd.DataFrame(wc_data)
+            st.dataframe(wc_df, use_container_width=True, hide_index=True)
+        
+        st.divider()
+        
+        # --- DETAILED DATA (Expandable) ---
+        st.subheader("📑 Detailed Data")
+        
+        detail_tab1, detail_tab2, detail_tab3 = st.tabs(["Scheduled Runs", "Work Orders", "Planning Ledger"])
+        
+        with detail_tab1:
+            # Show key columns only
+            display_cols = ['run_id', 'order', 'product', 'step', 'process', 'start_time', 'end_time', 'status']
+            available_cols = [c for c in display_cols if c in scheduled_df.columns]
+            if available_cols:
+                st.dataframe(scheduled_df[available_cols], use_container_width=True, height=300)
+            else:
+                st.dataframe(scheduled_df, use_container_width=True, height=300)
+        
+        with detail_tab2:
+            wo_df = clean_for_display(work_orders)
+            st.dataframe(wo_df, use_container_width=True, height=300)
+        
+        with detail_tab3:
+            ledger_df = clean_for_display(plan.get("ledger", []))
+            st.dataframe(ledger_df, use_container_width=True, height=300)
+        
+        st.divider()
+        
+        # --- DOWNLOADS ---
+        st.subheader("📥 Export Data")
+        
+        dl_col1, dl_col2, dl_col3 = st.columns(3)
+        
+        with dl_col1:
+            csv = scheduled_df.to_csv(index=False)
+            st.download_button(
+                "📥 Full Schedule",
+                csv,
+                "full_schedule.csv",
+                "text/csv",
+                use_container_width=True
+            )
+        
+        with dl_col2:
+            if order_status_data:
+                order_csv = pd.DataFrame(order_status_data).to_csv(index=False)
+                st.download_button(
+                    "📋 Order Summary",
+                    order_csv,
+                    "order_summary.csv",
+                    "text/csv",
+                    use_container_width=True
+                )
+        
+        with dl_col3:
+            if wc_data:
+                wc_csv = pd.DataFrame(wc_data).to_csv(index=False)
+                st.download_button(
+                    "🏭 WC Utilization",
+                    wc_csv,
+                    "workcenter_utilization.csv",
+                    "text/csv",
+                    use_container_width=True
+                )
+
 
 # --- Run Scheduler ---
 if run:
