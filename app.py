@@ -44,28 +44,11 @@ def get_color_for_workcenter(wc):
 def generate_routing_graphviz(bom_df):
     """Generate modern-styled Graphviz DOT diagram from BOM data"""
     
-    # Modern color palette
-    MODERN_COLORS = {
-        'ASSEMBLY': '#6366F1',      # Indigo
-        'FINISHING': '#F59E0B',     # Amber
-        'MACHINING': '#10B981',     # Emerald
-        'MOLDING': '#EC4899',       # Pink
-        'CASTING': '#F97316',       # Orange
-        'WELDING': '#06B6D4',       # Cyan
-        'PAINTING': '#8B5CF6',      # Violet
-        'TESTING': '#64748B',       # Slate
-        'PACKAGING': '#84CC16',     # Lime
-    }
+    # Create dynamic color map for this BOM
+    color_map = get_workcenter_color_map(bom_df)
     
     def get_modern_color(wc):
-        if not wc or wc == '':
-            return '#475569'  # Slate for raw materials
-        wc_upper = str(wc).upper()
-        for key, color in MODERN_COLORS.items():
-            if key in wc_upper:
-                return color
-        colors = ['#6366F1', '#EC4899', '#10B981', '#F59E0B', '#06B6D4', '#8B5CF6']
-        return colors[hash(wc) % len(colors)]
+        return get_color_for_workcenter(wc, color_map)
     
     # Parse BOM into structure
     parts = {}
@@ -372,19 +355,15 @@ with tab4:
     try:
         dot_code = generate_routing_graphviz(st.session_state.bom_df)
         
-        # Show legend
-        st.markdown("**🎨 Work Center Colors:**")
-        legend_cols = st.columns(5)
-        workcenters_in_bom = set()
-        for _, row in st.session_state.bom_df.iterrows():
-            wc = str(row.get('workcenter', '')).strip()
-            if wc:
-                workcenters_in_bom.add(wc)
+        # Build dynamic color map and show legend
+        color_map = get_workcenter_color_map(st.session_state.bom_df)
         
-        for i, wc in enumerate(sorted(workcenters_in_bom)):
-            color = get_color_for_workcenter(wc)
-            legend_cols[i % 5].markdown(
-                f'<span style="background-color:{color};color:white;padding:2px 8px;border-radius:4px;">{wc}</span>',
+        st.markdown("**🎨 Work Center Colors:**")
+        legend_cols = st.columns(min(len(color_map), 6)) if color_map else st.columns(1)
+        
+        for i, (wc, color) in enumerate(sorted(color_map.items())):
+            legend_cols[i % len(legend_cols)].markdown(
+                f'<span style="background-color:{color};color:white;padding:4px 12px;border-radius:6px;font-weight:500;font-size:13px;">{wc}</span>',
                 unsafe_allow_html=True
             )
         
