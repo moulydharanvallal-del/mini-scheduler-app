@@ -50,14 +50,29 @@ def get_color_for_workcenter(wc, color_map=None):
         return color_map[wc]
     return COLOR_PALETTE[hash(wc) % len(COLOR_PALETTE)]
 
-def generate_routing_graphviz(bom_df):
-    """Generate modern-styled Graphviz DOT diagram from BOM data"""
+def generate_routing_graphviz(bom_df, view_mode='part'):
+    """Generate modern-styled Graphviz DOT diagram from BOM data
+    
+    Args:
+        bom_df: DataFrame with BOM data
+        view_mode: 'part' for part-level view, 'step' for step-level view
+    """
     
     # Create dynamic color map for this BOM
     color_map = get_workcenter_color_map(bom_df)
     
+    # Part type colors (for part view)
+    PART_TYPE_COLORS = {
+        'FA': '#8B5CF6',  # Purple for Final Assembly
+        'SA': '#3B82F6',  # Blue for Sub-Assembly
+        'RW': '#475569',  # Gray for Raw Material
+    }
+    
     def get_modern_color(wc):
         return get_color_for_workcenter(wc, color_map)
+    
+    def get_part_type_color(part_type):
+        return PART_TYPE_COLORS.get(part_type, '#475569')
     
     # Parse BOM into structure
     parts = {}
@@ -105,12 +120,12 @@ def generate_routing_graphviz(bom_df):
     lines = []
     lines.append('digraph BOM {')
     lines.append('    // Modern dark theme with smooth edges')
-    lines.append('    bgcolor="#1E293B";')  # Slate-800 background
+    lines.append('    bgcolor="#1E293B";')
     lines.append('    pad="0.5";')
-    lines.append('    nodesep="1.0";')  # More spacing between nodes
-    lines.append('    ranksep="1.5";')  # More spacing between ranks
+    lines.append('    nodesep="1.0";')
+    lines.append('    ranksep="1.5";')
     lines.append('    rankdir=LR;')
-    lines.append('    splines=curved;')  # Smooth curved arrows
+    lines.append('    splines=curved;')
     lines.append('    overlap=false;')
     lines.append('    ')
     lines.append('    // Global node styling')
@@ -126,10 +141,10 @@ def generate_routing_graphviz(bom_df):
     lines.append('    ')
     lines.append('    // Elegant edge styling')
     lines.append('    edge [')
-    lines.append('        color="#CBD5E1",')  # Light gray edges
-    lines.append('        penwidth=1.2,')  # Thinner lines
+    lines.append('        color="#CBD5E1",')
+    lines.append('        penwidth=1.2,')
     lines.append('        arrowsize=0.7,')
-    lines.append('        arrowhead=vee,')  # Sharp V arrow
+    lines.append('        arrowhead=vee,')
     lines.append('        style=solid')
     lines.append('    ];')
     lines.append('')
@@ -142,7 +157,7 @@ def generate_routing_graphviz(bom_df):
     lines.append('        fontsize=12;')
     lines.append('        fontcolor="#94A3B8";')
     lines.append('        style="rounded";')
-    lines.append('        bgcolor="#334155";')  # Slate-700
+    lines.append('        bgcolor="#334155";')
     lines.append('        color="#475569";')
     lines.append('        penwidth=2;')
     for rm in sorted(raw_materials):
@@ -163,23 +178,45 @@ def generate_routing_graphviz(bom_df):
     lines.append('        color="#475569";')
     lines.append('        penwidth=2;')
     
-    # Sub-assemblies
-    for sa in sorted(sub_assemblies):
-        info = parts[sa]
-        wc = list(info['workcenters'])[0] if info['workcenters'] else ''
-        color = get_modern_color(wc)
-        safe_id = sa.replace(' ', '_').replace('-', '_')
-        lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="2" CELLSPACING="0"><TR><TD ALIGN="LEFT"><B>{sa}</B><BR/><FONT POINT-SIZE="8" COLOR="#E2E8F0">WC: {wc}</FONT></TD></TR></TABLE>>, fillcolor="{color}"];')
-    
-    # FA steps
-    for fa in sorted(final_products):
-        info = parts[fa]
-        for step_info in sorted(info['steps'], key=lambda x: str(x['step'])):
-            step = step_info['step']
-            wc = step_info['workcenter']
-            color = get_modern_color(wc)
-            safe_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
-            lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="2" CELLSPACING="0"><TR><TD ALIGN="LEFT"><B>{fa}</B><BR/><FONT POINT-SIZE="8">Step {step} | WC: {wc}</FONT></TD></TR></TABLE>>, fillcolor="{color}"];')
+    if view_mode == 'step':
+        # STEP VIEW: Show each step as a separate node, colored by WC
+        # Sub-assemblies - all steps
+        for sa in sorted(sub_assemblies):
+            info = parts[sa]
+            sorted_steps = sorted(info['steps'], key=lambda x: str(x['step']))
+            for step_info in sorted_steps:
+                step = step_info['step']
+                wc = step_info['workcenter']
+                color = get_modern_color(wc)
+                safe_id = f"{sa}_S{step}".replace(' ', '_').replace('-', '_')
+                lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="2" CELLSPACING="0"><TR><TD ALIGN="LEFT"><B>{sa}</B><BR/><FONT POINT-SIZE="8">Step {step} | WC: {wc}</FONT></TD></TR></TABLE>>, fillcolor="{color}"];')
+        
+        # Final assemblies - all steps
+        for fa in sorted(final_products):
+            info = parts[fa]
+            sorted_steps = sorted(info['steps'], key=lambda x: str(x['step']))
+            for step_info in sorted_steps:
+                step = step_info['step']
+                wc = step_info['workcenter']
+                color = get_modern_color(wc)
+                safe_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
+                lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="2" CELLSPACING="0"><TR><TD ALIGN="LEFT"><B>{fa}</B><BR/><FONT POINT-SIZE="8">Step {step} | WC: {wc}</FONT></TD></TR></TABLE>>, fillcolor="{color}"];')
+    else:
+        # PART VIEW: One node per part, colored by part type
+        for sa in sorted(sub_assemblies):
+            info = parts[sa]
+            num_steps = len(info['steps'])
+            wcs = ', '.join(sorted(info['workcenters']))
+            color = get_part_type_color('SA')
+            safe_id = sa.replace(' ', '_').replace('-', '_')
+            lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="2" CELLSPACING="0"><TR><TD ALIGN="LEFT"><B>{sa}</B><BR/><FONT POINT-SIZE="8" COLOR="#E2E8F0">{num_steps} steps</FONT></TD></TR></TABLE>>, fillcolor="{color}"];')
+        
+        for fa in sorted(final_products):
+            info = parts[fa]
+            num_steps = len(info['steps'])
+            color = get_part_type_color('FA')
+            safe_id = f"{fa}_PART".replace(' ', '_').replace('-', '_')
+            lines.append(f'        {safe_id} [label=<<TABLE BORDER="0" CELLPADDING="2" CELLSPACING="0"><TR><TD ALIGN="LEFT"><B>{fa}</B><BR/><FONT POINT-SIZE="8" COLOR="#E2E8F0">{num_steps} steps</FONT></TD></TR></TABLE>>, fillcolor="{color}"];')
     
     lines.append('    }')
     lines.append('')
@@ -201,46 +238,96 @@ def generate_routing_graphviz(bom_df):
     lines.append('    }')
     lines.append('')
     
-    # Edges - SA inputs
-    for sa in sub_assemblies:
-        info = parts[sa]
-        sa_id = sa.replace(' ', '_').replace('-', '_')
-        for step_info in info['steps']:
-            for inp in step_info['inputs']:
-                inp_id = inp.replace(' ', '_').replace('-', '_')
-                if inp in raw_materials or inp in sub_assemblies:
-                    lines.append(f'    {inp_id} -> {sa_id};')
-    
-    # Edges - FA steps
-    for fa in final_products:
-        info = parts[fa]
-        sorted_steps = sorted(info['steps'], key=lambda x: str(x['step']))
-        
-        prev_step_id = None
-        for step_info in sorted_steps:
-            step = step_info['step']
-            step_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
+    # EDGES
+    if view_mode == 'step':
+        # STEP VIEW EDGES
+        # SA internal step flow + input edges
+        for sa in sub_assemblies:
+            info = parts[sa]
+            sorted_steps = sorted(info['steps'], key=lambda x: str(x['step']))
             
+            prev_step_id = None
+            for step_info in sorted_steps:
+                step = step_info['step']
+                step_id = f"{sa}_S{step}".replace(' ', '_').replace('-', '_')
+                
+                # Internal flow between steps
+                if prev_step_id:
+                    lines.append(f'    {prev_step_id} -> {step_id} [color="#60A5FA", penwidth=1.5];')
+                
+                # Input edges (only for first step or steps that have inputs)
+                for inp in step_info['inputs']:
+                    inp_safe = inp.replace(' ', '_').replace('-', '_')
+                    if inp in raw_materials:
+                        lines.append(f'    {inp_safe} -> {step_id};')
+                    elif inp in sub_assemblies:
+                        # Connect to last step of input SA
+                        inp_info = parts[inp]
+                        inp_last_step = max(inp_info['steps'], key=lambda x: str(x['step']))['step']
+                        inp_step_id = f"{inp}_S{inp_last_step}".replace(' ', '_').replace('-', '_')
+                        lines.append(f'    {inp_step_id} -> {step_id};')
+                
+                prev_step_id = step_id
+        
+        # FA step flow + input edges
+        for fa in final_products:
+            info = parts[fa]
+            sorted_steps = sorted(info['steps'], key=lambda x: str(x['step']))
+            
+            prev_step_id = None
+            for step_info in sorted_steps:
+                step = step_info['step']
+                step_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
+                
+                if prev_step_id:
+                    lines.append(f'    {prev_step_id} -> {step_id} [color="#60A5FA", penwidth=1.5];')
+                
+                for inp in step_info['inputs']:
+                    inp_safe = inp.replace(' ', '_').replace('-', '_')
+                    if inp in raw_materials:
+                        lines.append(f'    {inp_safe} -> {step_id};')
+                    elif inp in sub_assemblies:
+                        inp_info = parts[inp]
+                        inp_last_step = max(inp_info['steps'], key=lambda x: str(x['step']))['step']
+                        inp_step_id = f"{inp}_S{inp_last_step}".replace(' ', '_').replace('-', '_')
+                        lines.append(f'    {inp_step_id} -> {step_id};')
+                
+                prev_step_id = step_id
+            
+            # Connect last FA step to output
             if prev_step_id:
-                lines.append(f'    {prev_step_id} -> {step_id} [color="#60A5FA", penwidth=1.5, arrowhead=vee];')  # Blue highlight for flow
-            
-            for inp in step_info['inputs']:
-                inp_id = inp.replace(' ', '_').replace('-', '_')
-                if inp in raw_materials or inp in sub_assemblies:
-                    lines.append(f'    {inp_id} -> {step_id};')
-            
-            prev_step_id = step_id
+                out_id = f"{fa}_OUT".replace(' ', '_').replace('-', '_')
+                lines.append(f'    {prev_step_id} -> {out_id} [color="#22C55E", penwidth=1.5];')
+    
+    else:
+        # PART VIEW EDGES
+        # SA inputs
+        for sa in sub_assemblies:
+            info = parts[sa]
+            sa_id = sa.replace(' ', '_').replace('-', '_')
+            for step_info in info['steps']:
+                for inp in step_info['inputs']:
+                    inp_id = inp.replace(' ', '_').replace('-', '_')
+                    if inp in raw_materials or inp in sub_assemblies:
+                        lines.append(f'    {inp_id} -> {sa_id};')
         
-        if prev_step_id:
+        # FA inputs and output
+        for fa in final_products:
+            info = parts[fa]
+            fa_id = f"{fa}_PART".replace(' ', '_').replace('-', '_')
+            
+            for step_info in info['steps']:
+                for inp in step_info['inputs']:
+                    inp_id = inp.replace(' ', '_').replace('-', '_')
+                    if inp in raw_materials or inp in sub_assemblies:
+                        lines.append(f'    {inp_id} -> {fa_id};')
+            
             out_id = f"{fa}_OUT".replace(' ', '_').replace('-', '_')
-            lines.append(f'    {prev_step_id} -> {out_id} [color="#22C55E", penwidth=1.5, arrowhead=vee];')  # Green for final
+            lines.append(f'    {fa_id} -> {out_id} [color="#22C55E", penwidth=1.5];')
     
     lines.append('}')
     
     return '\n'.join(lines)
-
-# --- Helper to clean data for display ---
-def clean_for_display(data):
     """Convert tuples and complex objects to strings for display"""
     if isinstance(data, list):
         df = pd.DataFrame(data)
@@ -360,22 +447,49 @@ with tab3:
 
 # --- Tab 4: Routing Map ---
 with tab4:
-    st.subheader("🗺️ Product Routing Map")
+    st.subheader("��️ Product Routing Map")
     st.caption("Visual representation of your BOM - how products flow from raw materials to finished goods.")
+    
+    # View mode toggle
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        view_mode = st.radio(
+            "View Mode",
+            options=["part", "step"],
+            format_func=lambda x: "📦 Part View" if x == "part" else "🔧 Step View",
+            horizontal=True,
+            help="Part View: One node per part (simpler). Step View: One node per operation (detailed)."
+        )
     
     # Generate and display the diagram
     try:
-        dot_code = generate_routing_graphviz(st.session_state.bom_df)
+        dot_code = generate_routing_graphviz(st.session_state.bom_df, view_mode=view_mode)
         
         # Build dynamic color map and show legend
         color_map = get_workcenter_color_map(st.session_state.bom_df)
         
-        st.markdown("**🎨 Work Center Colors:**")
-        legend_cols = st.columns(min(len(color_map), 6)) if color_map else st.columns(1)
-        
-        for i, (wc, color) in enumerate(sorted(color_map.items())):
-            legend_cols[i % len(legend_cols)].markdown(
-                f'<span style="background-color:{color};color:white;padding:4px 12px;border-radius:6px;font-weight:500;font-size:13px;">{wc}</span>',
+        if view_mode == 'step':
+            st.markdown("**🎨 Work Center Colors:**")
+            legend_cols = st.columns(min(len(color_map), 6)) if color_map else st.columns(1)
+            
+            for i, (wc, color) in enumerate(sorted(color_map.items())):
+                legend_cols[i % len(legend_cols)].markdown(
+                    f'<span style="background-color:{color};color:white;padding:4px 12px;border-radius:6px;font-weight:500;font-size:13px;">{wc}</span>',
+                    unsafe_allow_html=True
+                )
+        else:
+            st.markdown("**🎨 Part Type Colors:**")
+            legend_cols = st.columns(3)
+            legend_cols[0].markdown(
+                f'<span style="background-color:#8B5CF6;color:white;padding:4px 12px;border-radius:6px;font-weight:500;font-size:13px;">Final Assembly (FA)</span>',
+                unsafe_allow_html=True
+            )
+            legend_cols[1].markdown(
+                f'<span style="background-color:#3B82F6;color:white;padding:4px 12px;border-radius:6px;font-weight:500;font-size:13px;">Sub-Assembly (SA)</span>',
+                unsafe_allow_html=True
+            )
+            legend_cols[2].markdown(
+                f'<span style="background-color:#475569;color:white;padding:4px 12px;border-radius:6px;font-weight:500;font-size:13px;">Raw Material (RW)</span>',
                 unsafe_allow_html=True
             )
         
@@ -384,7 +498,7 @@ with tab4:
         # Render diagram
         st.graphviz_chart(dot_code, use_container_width=True)
         
-        # Show raw Mermaid code in expander
+        # Show raw DOT code in expander
         with st.expander("📝 View DOT Code"):
             st.code(dot_code, language="dot")
             
