@@ -16,30 +16,39 @@ st.set_page_config(page_title="Mini Manufacturing Scheduler", layout="wide")
 st.title("🏭 Mini Manufacturing Scheduler")
 st.caption("Enter your data in the tables below, then click Run to generate a schedule.")
 
-# --- Work Center Color Mapping ---
-WORKCENTER_COLORS = {
-    'ASSEMBLY': '#6366F1',      # Indigo
-    'FINISHING': '#F59E0B',     # Amber
-    'MACHINING': '#10B981',     # Emerald
-    'MOLDING': '#EC4899',       # Pink
-    'CASTING': '#F97316',       # Orange
-    'WELDING': '#06B6D4',       # Cyan
-    'PAINTING': '#8B5CF6',      # Violet
-    'TESTING': '#64748B',       # Slate
-    'PACKAGING': '#84CC16',     # Lime
-}
+# --- Dynamic Color Palette ---
+COLOR_PALETTE = [
+    '#6366F1',  # Indigo
+    '#10B981',  # Emerald
+    '#EC4899',  # Pink
+    '#F59E0B',  # Amber
+    '#F97316',  # Orange
+    '#06B6D4',  # Cyan
+    '#8B5CF6',  # Violet
+    '#84CC16',  # Lime
+    '#EF4444',  # Red
+    '#14B8A6',  # Teal
+]
 
-def get_color_for_workcenter(wc):
-    """Get color for a work center, generate one if not in mapping"""
-    if not wc or wc == '':
-        return '#757575'  # Grey for raw materials
-    wc_upper = str(wc).upper()
-    for key, color in WORKCENTER_COLORS.items():
-        if key in wc_upper:
-            return color
-    # Generate a color based on hash
-    hash_val = hash(wc) % 360
-    return f'hsl({hash_val}, 70%, 50%)'
+def get_workcenter_color_map(bom_df):
+    """Dynamically create color mapping for all work centers in BOM"""
+    workcenters = set()
+    for _, row in bom_df.iterrows():
+        wc = str(row.get('workcenter', '')).strip()
+        if wc and wc.lower() not in ['', 'nan', 'none']:
+            workcenters.add(wc)
+    color_map = {}
+    for idx, wc in enumerate(sorted(workcenters)):
+        color_map[wc] = COLOR_PALETTE[idx % len(COLOR_PALETTE)]
+    return color_map
+
+def get_color_for_workcenter(wc, color_map=None):
+    """Get color for a work center from the dynamic map"""
+    if not wc or wc == '' or str(wc).lower() in ['nan', 'none']:
+        return '#475569'
+    if color_map and wc in color_map:
+        return color_map[wc]
+    return COLOR_PALETTE[hash(wc) % len(COLOR_PALETTE)]
 
 def generate_routing_graphviz(bom_df):
     """Generate modern-styled Graphviz DOT diagram from BOM data"""
