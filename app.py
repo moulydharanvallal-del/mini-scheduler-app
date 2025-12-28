@@ -2,6 +2,7 @@ import json
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
+from streamlit_mermaid import st_mermaid
 
 from scheduler_core import (
     run_scheduler,
@@ -198,21 +199,8 @@ def generate_routing_mermaid(bom_df):
     return '\n'.join(lines)
 
 def render_mermaid(mermaid_code, height=500):
-    """Render Mermaid diagram using HTML component"""
-    html = f"""
-    <html>
-    <head>
-        <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-        <script>mermaid.initialize({{startOnLoad:true, theme:'neutral'}});</script>
-    </head>
-    <body>
-        <div class="mermaid" style="display: flex; justify-content: center;">
-{mermaid_code}
-        </div>
-    </body>
-    </html>
-    """
-    components.html(html, height=height, scrolling=True)
+    """Render Mermaid diagram using streamlit-mermaid"""
+    st_mermaid(mermaid_code, height=height)
 
 # --- Helper to clean data for display ---
 def clean_for_display(data):
