@@ -1,7 +1,6 @@
 import json
 import pandas as pd
 import streamlit as st
-from datetime import datetime
 
 from scheduler_core import (
     run_scheduler,
@@ -29,20 +28,10 @@ with st.sidebar:
 
 # --- Initialize session state with defaults ---
 if "orders_df" not in st.session_state:
-    orders_data = []
-    for o in DEFAULT_ORDERS:
-        row = dict(o)
-        # Convert date string to date object
-        if isinstance(row.get("due_date"), str):
-            try:
-                row["due_date"] = datetime.strptime(row["due_date"], "%Y-%m-%d").date()
-            except:
-                pass
-        orders_data.append(row)
-    st.session_state.orders_df = pd.DataFrame(orders_data)
+    st.session_state.orders_df = pd.DataFrame(DEFAULT_ORDERS)
 
 if "bom_df" not in st.session_state:
-    st.session_state.bom_df = pd.DataFrame(DEFAULT_BOM)
+    st.session_state.bom_df = pd.DataFrame(DEFAULT_BOM).astype(str).replace("nan", "")
 
 if "capacity_df" not in st.session_state:
     cap_list = [{"work_center": k, "num_machines": v} for k, v in DEFAULT_CAPACITY.items()]
@@ -61,11 +50,11 @@ with tab1:
         num_rows="dynamic",
         use_container_width=True,
         column_config={
-            "order_number": st.column_config.TextColumn("Order #", help="Unique order identifier"),
-            "customer": st.column_config.TextColumn("Customer", help="Customer name"),
-            "product": st.column_config.TextColumn("Product", help="Product to manufacture"),
-            "quantity": st.column_config.NumberColumn("Quantity", help="Number of units", min_value=1),
-            "due_date": st.column_config.DateColumn("Due Date", help="Order due date", format="YYYY-MM-DD"),
+            "order_number": st.column_config.TextColumn("Order #"),
+            "customer": st.column_config.TextColumn("Customer"),
+            "product": st.column_config.TextColumn("Product"),
+            "quantity": st.column_config.NumberColumn("Quantity", min_value=1),
+            "due_date": st.column_config.TextColumn("Due Date (YYYY-MM-DD)"),
         },
         hide_index=True,
         key="orders_editor"
@@ -86,8 +75,8 @@ with tab2:
         column_config={
             "part_name": st.column_config.TextColumn("Part Name"),
             "part_type": st.column_config.SelectboxColumn("Type", options=["FA", "SA", "RW"]),
-            "inputs_needed": st.column_config.TextColumn("Inputs (comma-sep)"),
-            "input_qty_need": st.column_config.TextColumn("Input Qty (comma-sep)"),
+            "inputs_needed": st.column_config.TextColumn("Inputs"),
+            "input_qty_need": st.column_config.TextColumn("Input Qty"),
             "stepnumber": st.column_config.TextColumn("Step #"),
             "workcenter": st.column_config.TextColumn("Work Center"),
             "batchsize": st.column_config.TextColumn("Batch Size"),
@@ -114,8 +103,8 @@ with tab3:
             num_rows="dynamic",
             use_container_width=True,
             column_config={
-                "work_center": st.column_config.TextColumn("Work Center", help="Name of the work center"),
-                "num_machines": st.column_config.NumberColumn("# Machines", help="Number of parallel machines/stations", min_value=1, max_value=100),
+                "work_center": st.column_config.TextColumn("Work Center"),
+                "num_machines": st.column_config.NumberColumn("# Machines", min_value=1, max_value=100),
             },
             hide_index=True,
             key="capacity_editor"
@@ -135,7 +124,7 @@ with tab4:
     fig = st.session_state.get("fig")
 
     if not scheduled:
-        st.info("👈 Click **Run Scheduler** in the sidebar to generate results.")
+        st.info("�� Click **Run Scheduler** in the sidebar to generate results.")
     else:
         c1, c2, c3 = st.columns(3)
         c1.metric("✅ Scheduled Runs", len(scheduled))
@@ -170,23 +159,22 @@ if run:
     try:
         orders = st.session_state.orders_df.to_dict("records")
         
-        # Convert due_date to string format
+        # Ensure due_date is string
         for o in orders:
-            if hasattr(o.get("due_date"), "strftime"):
-                o["due_date"] = o["due_date"].strftime("%Y-%m-%d")
-            elif pd.notna(o.get("due_date")):
+            if pd.notna(o.get("due_date")):
                 o["due_date"] = str(o["due_date"])[:10]
         
         bom = st.session_state.bom_df.to_dict("records")
         
-        # Clean up BOM - handle empty values for RW type
+        # Clean up BOM - convert numeric strings back to int where needed
         for row in bom:
-            for key in row:
-                if pd.isna(row[key]):
-                    row[key] = ""
-                elif isinstance(row[key], float):
-                    if row[key] == int(row[key]):
-                        row[key] = int(row[key])
+            for key in ["stepnumber", "batchsize", "cycletime"]:
+                val = row.get(key, "")
+                if val and val != "":
+                    try:
+                        row[key] = int(float(val))
+                    except:
+                        pass
         
         cap_df = st.session_state.capacity_df
         capacity = dict(zip(cap_df["work_center"], cap_df["num_machines"].astype(int)))
