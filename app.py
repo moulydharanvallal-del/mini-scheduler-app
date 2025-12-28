@@ -18,15 +18,15 @@ st.caption("Enter your data in the tables below, then click Run to generate a sc
 
 # --- Work Center Color Mapping ---
 WORKCENTER_COLORS = {
-    'ASSEMBLY': '#2196F3',      # Blue
-    'FINISHING': '#FFC107',     # Yellow
-    'MACHINING': '#4CAF50',     # Green
-    'MOLDING': '#9C27B0',       # Purple
-    'CASTING': '#FF5722',       # Orange
-    'WELDING': '#00BCD4',       # Cyan
-    'PAINTING': '#E91E63',      # Pink
-    'TESTING': '#607D8B',       # Grey-Blue
-    'PACKAGING': '#795548',     # Brown
+    'ASSEMBLY': '#6366F1',      # Indigo
+    'FINISHING': '#F59E0B',     # Amber
+    'MACHINING': '#10B981',     # Emerald
+    'MOLDING': '#EC4899',       # Pink
+    'CASTING': '#F97316',       # Orange
+    'WELDING': '#06B6D4',       # Cyan
+    'PAINTING': '#8B5CF6',      # Violet
+    'TESTING': '#64748B',       # Slate
+    'PACKAGING': '#84CC16',     # Lime
 }
 
 def get_color_for_workcenter(wc):
@@ -42,7 +42,30 @@ def get_color_for_workcenter(wc):
     return f'hsl({hash_val}, 70%, 50%)'
 
 def generate_routing_graphviz(bom_df):
-    """Generate Graphviz DOT diagram from BOM data"""
+    """Generate modern-styled Graphviz DOT diagram from BOM data"""
+    
+    # Modern color palette
+    MODERN_COLORS = {
+        'ASSEMBLY': '#6366F1',      # Indigo
+        'FINISHING': '#F59E0B',     # Amber
+        'MACHINING': '#10B981',     # Emerald
+        'MOLDING': '#EC4899',       # Pink
+        'CASTING': '#F97316',       # Orange
+        'WELDING': '#06B6D4',       # Cyan
+        'PAINTING': '#8B5CF6',      # Violet
+        'TESTING': '#64748B',       # Slate
+        'PACKAGING': '#84CC16',     # Lime
+    }
+    
+    def get_modern_color(wc):
+        if not wc or wc == '':
+            return '#475569'  # Slate for raw materials
+        wc_upper = str(wc).upper()
+        for key, color in MODERN_COLORS.items():
+            if key in wc_upper:
+                return color
+        colors = ['#6366F1', '#EC4899', '#10B981', '#F59E0B', '#06B6D4', '#8B5CF6']
+        return colors[hash(wc) % len(colors)]
     
     # Parse BOM into structure
     parts = {}
@@ -86,38 +109,72 @@ def generate_routing_graphviz(bom_df):
         elif info['type'] == 'FA':
             final_products.append(part_name)
     
-    # Build DOT graph
+    # Build modern DOT graph
     lines = []
     lines.append('digraph BOM {')
+    lines.append('    // Modern dark theme')
+    lines.append('    bgcolor="#1E293B";')  # Slate-800 background
+    lines.append('    pad="0.5";')
+    lines.append('    nodesep="0.8";')
+    lines.append('    ranksep="1.2";')
     lines.append('    rankdir=LR;')
-    lines.append('    node [shape=box, style="rounded,filled", fontname="Helvetica"];')
-    lines.append('    edge [color="#666666"];')
+    lines.append('    ')
+    lines.append('    // Global node styling')
+    lines.append('    node [')
+    lines.append('        shape=box,')
+    lines.append('        style="rounded,filled",')
+    lines.append('        fontname="Helvetica Neue,Arial,sans-serif",')
+    lines.append('        fontsize=11,')
+    lines.append('        fontcolor="white",')
+    lines.append('        penwidth=0,')
+    lines.append('        margin="0.3,0.2"')
+    lines.append('    ];')
+    lines.append('    ')
+    lines.append('    // Global edge styling')
+    lines.append('    edge [')
+    lines.append('        color="#94A3B8",')  # Slate-400
+    lines.append('        penwidth=2,')
+    lines.append('        arrowsize=0.8,')
+    lines.append('        arrowhead=vee')
+    lines.append('    ];')
     lines.append('')
     
     # Raw Materials cluster
     lines.append('    subgraph cluster_raw {')
-    lines.append('        label="🪨 Raw Materials";')
-    lines.append('        style=dashed;')
-    lines.append('        color="#999999";')
+    lines.append('        label="RAW MATERIALS";')
+    lines.append('        labelloc="t";')
+    lines.append('        fontname="Helvetica Neue,Arial,sans-serif";')
+    lines.append('        fontsize=12;')
+    lines.append('        fontcolor="#94A3B8";')
+    lines.append('        style="rounded";')
+    lines.append('        bgcolor="#334155";')  # Slate-700
+    lines.append('        color="#475569";')
+    lines.append('        penwidth=2;')
     for rm in sorted(raw_materials):
         safe_id = rm.replace(' ', '_').replace('-', '_')
-        lines.append(f'        {safe_id} [label="{rm}", fillcolor="#BDBDBD", fontcolor="white"];')
+        lines.append(f'        {safe_id} [label="{rm}", fillcolor="#475569"];')  # Slate-600
     lines.append('    }')
     lines.append('')
     
     # Manufacturing Flow cluster
     lines.append('    subgraph cluster_flow {')
-    lines.append('        label="⚙️ Manufacturing";')
-    lines.append('        style=dashed;')
-    lines.append('        color="#999999";')
+    lines.append('        label="MANUFACTURING";')
+    lines.append('        labelloc="t";')
+    lines.append('        fontname="Helvetica Neue,Arial,sans-serif";')
+    lines.append('        fontsize=12;')
+    lines.append('        fontcolor="#94A3B8";')
+    lines.append('        style="rounded";')
+    lines.append('        bgcolor="#334155";')
+    lines.append('        color="#475569";')
+    lines.append('        penwidth=2;')
     
     # Sub-assemblies
     for sa in sorted(sub_assemblies):
         info = parts[sa]
         wc = list(info['workcenters'])[0] if info['workcenters'] else ''
-        color = get_color_for_workcenter(wc)
+        color = get_modern_color(wc)
         safe_id = sa.replace(' ', '_').replace('-', '_')
-        lines.append(f'        {safe_id} [label="{sa}\n({wc})", fillcolor="{color}", fontcolor="white"];')
+        lines.append(f'        {safe_id} [label=<<B>{sa}</B><BR/><FONT POINT-SIZE="9">{wc}</FONT>>, fillcolor="{color}"];')
     
     # FA steps
     for fa in sorted(final_products):
@@ -125,22 +182,27 @@ def generate_routing_graphviz(bom_df):
         for step_info in sorted(info['steps'], key=lambda x: str(x['step'])):
             step = step_info['step']
             wc = step_info['workcenter']
-            color = get_color_for_workcenter(wc)
+            color = get_modern_color(wc)
             safe_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
-            text_color = "black" if color == "#FFC107" else "white"
-            lines.append(f'        {safe_id} [label="{fa}\nStep {step}\n({wc})", fillcolor="{color}", fontcolor="{text_color}"];')
+            lines.append(f'        {safe_id} [label=<<B>{fa}</B><BR/>Step {step}<BR/><FONT POINT-SIZE="9">{wc}</FONT>>, fillcolor="{color}"];')
     
     lines.append('    }')
     lines.append('')
     
     # Finished Goods cluster
     lines.append('    subgraph cluster_fg {')
-    lines.append('        label="📦 Finished Goods";')
-    lines.append('        style=dashed;')
-    lines.append('        color="#999999";')
+    lines.append('        label="FINISHED GOODS";')
+    lines.append('        labelloc="t";')
+    lines.append('        fontname="Helvetica Neue,Arial,sans-serif";')
+    lines.append('        fontsize=12;')
+    lines.append('        fontcolor="#94A3B8";')
+    lines.append('        style="rounded";')
+    lines.append('        bgcolor="#334155";')
+    lines.append('        color="#475569";')
+    lines.append('        penwidth=2;')
     for fp in sorted(final_products):
         safe_id = f"{fp}_OUT".replace(' ', '_').replace('-', '_')
-        lines.append(f'        {safe_id} [label="{fp}", fillcolor="#4CAF50", fontcolor="white", shape=doubleoctagon];')
+        lines.append(f'        {safe_id} [label=<<B>{fp}</B><BR/><FONT POINT-SIZE="9">✓ Complete</FONT>>, fillcolor="#22C55E", shape=box];')  # Green-500
     lines.append('    }')
     lines.append('')
     
@@ -165,7 +227,7 @@ def generate_routing_graphviz(bom_df):
             step_id = f"{fa}_S{step}".replace(' ', '_').replace('-', '_')
             
             if prev_step_id:
-                lines.append(f'    {prev_step_id} -> {step_id};')
+                lines.append(f'    {prev_step_id} -> {step_id} [color="#60A5FA", penwidth=3];')  # Blue highlight for flow
             
             for inp in step_info['inputs']:
                 inp_id = inp.replace(' ', '_').replace('-', '_')
@@ -176,7 +238,7 @@ def generate_routing_graphviz(bom_df):
         
         if prev_step_id:
             out_id = f"{fa}_OUT".replace(' ', '_').replace('-', '_')
-            lines.append(f'    {prev_step_id} -> {out_id};')
+            lines.append(f'    {prev_step_id} -> {out_id} [color="#22C55E", penwidth=3];')  # Green for final
     
     lines.append('}')
     
