@@ -619,40 +619,142 @@ def run_manufacturing_scheduler():
 # ----------------------------
 
 customer_orders = [
-    {'order_number': 'ORD-001', 'customer': 'Acme Corp', 'product': 'WIDGET_A', 'quantity': 100, 'due_date': '2025-01-15'},
-    {'order_number': 'ORD-002', 'customer': 'Beta Inc', 'product': 'WIDGET_A', 'quantity': 50, 'due_date': '2025-01-20'},
-    {'order_number': 'ORD-003', 'customer': 'Gamma LLC', 'product': 'GADGET_B', 'quantity': 80, 'due_date': '2025-01-18'},
+    {'order_number': 'ORD-001', 'customer': 'Shahrukh', 'product': 'IR_FA', 'quantity': 1, 'due_date': '2025-01-15'},
 ]
 
 bom_data = [
-    # WIDGET_A - Simple product with 2 steps
-    {'part_name': 'WIDGET_A', 'part_type': 'FA', 'inputs_needed': 'FRAME,COVER', 'input_qty_need': '1,1', 'stepnumber': 1, 'workcenter': 'ASSEMBLY', 'batchsize': 10, 'cycletime': 30, 'human_need': 'WORKER_A', 'human_hours': '25', 'human_need_to': 'TH'},
-    {'part_name': 'WIDGET_A', 'part_type': 'FA', 'inputs_needed': 'PAINT', 'input_qty_need': '1', 'stepnumber': 2, 'workcenter': 'FINISHING', 'batchsize': 10, 'cycletime': 15, 'human_need': 'WORKER_B', 'human_hours': '10', 'human_need_to': 'TH'},
+    # IR_FA - Final Assembly (1 step)
+    {'part_name': 'IR_FA', 'part_type': 'FA', 'inputs_needed': 'TB201990,TC201989-1,TC202034-1', 'input_qty_need': '1,1,1', 'stepnumber': 1, 'workcenter': '811ASMLY', 'batchsize': 1, 'cycletime': 90, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
 
-    # GADGET_B - Another simple product with 2 steps  
-    {'part_name': 'GADGET_B', 'part_type': 'FA', 'inputs_needed': 'BASE,TOP', 'input_qty_need': '1,1', 'stepnumber': 1, 'workcenter': 'MACHINING', 'batchsize': 20, 'cycletime': 45, 'human_need': 'WORKER_C', 'human_hours': '40', 'human_need_to': 'TH'},
-    {'part_name': 'GADGET_B', 'part_type': 'FA', 'inputs_needed': 'SCREWS', 'input_qty_need': '4', 'stepnumber': 2, 'workcenter': 'ASSEMBLY', 'batchsize': 20, 'cycletime': 20, 'human_need': 'WORKER_A', 'human_hours': '15', 'human_need_to': 'TH'},
+    # TB201990 - Sub-assembly (3 steps)
+    {'part_name': 'TB201990', 'part_type': 'SA', 'inputs_needed': 'TB201971,T201972-4300,T201972-6700', 'input_qty_need': '1,1,1', 'stepnumber': 1, 'workcenter': '763WELDM', 'batchsize': 1, 'cycletime': 30, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TB201990', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '770WHLBR', 'batchsize': 1, 'cycletime': 6, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TB201990', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 3, 'workcenter': '771HCFIN', 'batchsize': 1, 'cycletime': 30, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
 
-    # Sub-assemblies
-    {'part_name': 'FRAME', 'part_type': 'SA', 'inputs_needed': 'STEEL', 'input_qty_need': '2', 'stepnumber': 1, 'workcenter': 'MACHINING', 'batchsize': 25, 'cycletime': 60, 'human_need': 'WORKER_C', 'human_hours': '50', 'human_need_to': 'TH'},
-    {'part_name': 'COVER', 'part_type': 'SA', 'inputs_needed': 'PLASTIC', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': 'MOLDING', 'batchsize': 50, 'cycletime': 20, 'human_need': 'WORKER_D', 'human_hours': '15', 'human_need_to': 'TH'},
-    {'part_name': 'BASE', 'part_type': 'SA', 'inputs_needed': 'ALUMINUM', 'input_qty_need': '3', 'stepnumber': 1, 'workcenter': 'CASTING', 'batchsize': 15, 'cycletime': 90, 'human_need': 'WORKER_E', 'human_hours': '80', 'human_need_to': 'TH'},
-    {'part_name': 'TOP', 'part_type': 'SA', 'inputs_needed': 'PLASTIC', 'input_qty_need': '2', 'stepnumber': 1, 'workcenter': 'MOLDING', 'batchsize': 50, 'cycletime': 25, 'human_need': 'WORKER_D', 'human_hours': '20', 'human_need_to': 'TH'},
+    # TB201971 - Sub-assembly (1 step)
+    {'part_name': 'TB201971', 'part_type': 'SA', 'inputs_needed': 'TB201970', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '764WELDM', 'batchsize': 1, 'cycletime': 9, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
 
-    # Raw Materials (infinite supply)
-    {'part_name': 'STEEL', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'PLASTIC', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'ALUMINUM', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'PAINT', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
-    {'part_name': 'SCREWS', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    # TB201970 - Sub-assembly (3 steps)
+    {'part_name': 'TB201970', 'part_type': 'SA', 'inputs_needed': 'MZ1301010034', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '763SHR16', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TB201970', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '761PUNCH', 'batchsize': 1, 'cycletime': 6, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TB201970', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 3, 'workcenter': '763PRBRK', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # T201972-4300 - Sub-assembly (2 steps)
+    {'part_name': 'T201972-4300', 'part_type': 'SA', 'inputs_needed': 'MZ1304010054', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '763SHR16', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'T201972-4300', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '763PRBRK', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # T201972-6700 - Sub-assembly (2 steps)
+    {'part_name': 'T201972-6700', 'part_type': 'SA', 'inputs_needed': 'MZ1304010054', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '763SHR16', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'T201972-6700', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '763PRBRK', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # TC201989-1 - Sub-assembly (3 steps) - THE BIG ONE with 10 inputs
+    {'part_name': 'TC201989-1', 'part_type': 'SA', 'inputs_needed': 'TA201968,TA201969,TA201967,TC201501-105,TN202444,T202275-6544,T201966-4738,T201962-6544,T201963-6431,T201965-4738', 'input_qty_need': '1,1,1,1,1,1,1,1,1,1', 'stepnumber': 1, 'workcenter': '763WELDM', 'batchsize': 1, 'cycletime': 150, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TC201989-1', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '770WHLBR', 'batchsize': 1, 'cycletime': 6, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TC201989-1', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 3, 'workcenter': '771HCFIN', 'batchsize': 1, 'cycletime': 45, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # TA201968 - Sub-assembly (3 steps)
+    {'part_name': 'TA201968', 'part_type': 'SA', 'inputs_needed': 'MZ1307010089', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '763BDSAW', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TA201968', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '763ACRO', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TA201968', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 3, 'workcenter': '771VIKIN', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # TA201969 - Sub-assembly (2 steps)
+    {'part_name': 'TA201969', 'part_type': 'SA', 'inputs_needed': 'MZ1307020040', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '763BDSAW', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TA201969', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '763ACRO', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # TA201967 - Sub-assembly (2 steps)
+    {'part_name': 'TA201967', 'part_type': 'SA', 'inputs_needed': 'MZ1307010089', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '763BDSAW', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TA201967', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '771VIKIN', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # TC201501-105 - Sub-assembly (3 steps)
+    {'part_name': 'TC201501-105', 'part_type': 'SA', 'inputs_needed': 'MZ1302010028', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '764PSMAP', 'batchsize': 1, 'cycletime': 29, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TC201501-105', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '764PSMAO', 'batchsize': 1, 'cycletime': 3, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TC201501-105', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 3, 'workcenter': '763DRLPR', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # TN202444 - Sub-assembly (2 steps)
+    {'part_name': 'TN202444', 'part_type': 'SA', 'inputs_needed': 'MZ1307010001', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '763IRONW', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TN202444', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '763DRLPR', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # T202275-6544 - Sub-assembly (3 steps)
+    {'part_name': 'T202275-6544', 'part_type': 'SA', 'inputs_needed': 'MZ1301010034', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '763SHR16', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'T202275-6544', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '763IRONW', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'T202275-6544', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 3, 'workcenter': '763PRBRK', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # T201966-4738 - Sub-assembly (3 steps)
+    {'part_name': 'T201966-4738', 'part_type': 'SA', 'inputs_needed': 'MZ1301010034', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '763SHR16', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'T201966-4738', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '761PUNCH', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'T201966-4738', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 3, 'workcenter': '763PRBRK', 'batchsize': 1, 'cycletime': 2, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # T201962-6544 - Sub-assembly (2 steps)
+    {'part_name': 'T201962-6544', 'part_type': 'SA', 'inputs_needed': 'MZ1301010034', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '763SHR16', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'T201962-6544', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '763PRBRK', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # T201963-6431 - Sub-assembly (2 steps)
+    {'part_name': 'T201963-6431', 'part_type': 'SA', 'inputs_needed': 'MZ1301010034', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '763SHR16', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'T201963-6431', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '763PRBRK', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # T201965-4738 - Sub-assembly (2 steps)
+    {'part_name': 'T201965-4738', 'part_type': 'SA', 'inputs_needed': 'MZ1301010034', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '763SHR16', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'T201965-4738', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '763PRBRK', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # TC202034-1 - Sub-assembly (1 step)
+    {'part_name': 'TC202034-1', 'part_type': 'SA', 'inputs_needed': 'TB100408-5,TB100423', 'input_qty_need': '1,1', 'stepnumber': 1, 'workcenter': '761ASMLY', 'batchsize': 1, 'cycletime': 6, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # TB100408-5 - Sub-assembly (2 steps)
+    {'part_name': 'TB100408-5', 'part_type': 'SA', 'inputs_needed': 'TB100413-5,TB100416', 'input_qty_need': '1,1', 'stepnumber': 1, 'workcenter': '761HSTUD', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TB100408-5', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '761SPWLD', 'batchsize': 1, 'cycletime': 2, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # TB100413-5 - Sub-assembly (5 steps)
+    {'part_name': 'TB100413-5', 'part_type': 'SA', 'inputs_needed': 'MZ1304020031', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '761PUNCH', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TB100413-5', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '761DBURR', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TB100413-5', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 3, 'workcenter': '761FORM2', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TB100413-5', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 4, 'workcenter': '761TWELD', 'batchsize': 1, 'cycletime': 2, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TB100413-5', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 5, 'workcenter': '761POLSH', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # TB100416 - Sub-assembly (2 steps)
+    {'part_name': 'TB100416', 'part_type': 'SA', 'inputs_needed': 'MZ1304020009', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '761PUNCH', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TB100416', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '761DBURR', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # TB100423 - Sub-assembly (5 steps)
+    {'part_name': 'TB100423', 'part_type': 'SA', 'inputs_needed': 'MZ1304020009', 'input_qty_need': '1', 'stepnumber': 1, 'workcenter': '761PUNCH', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TB100423', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 2, 'workcenter': '761DBURR', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TB100423', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 3, 'workcenter': '761FORM2', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TB100423', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 4, 'workcenter': '761TWELD', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'TB100423', 'part_type': 'SA', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': 5, 'workcenter': '761POLSH', 'batchsize': 1, 'cycletime': 1, 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+
+    # Raw Materials (8 total)
+    {'part_name': 'MZ1307010089', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'MZ1307020040', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'MZ1302010028', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'MZ1307010001', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'MZ1301010034', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'MZ1304010054', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'MZ1304020031', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
+    {'part_name': 'MZ1304020009', 'part_type': 'RW', 'inputs_needed': '', 'input_qty_need': '', 'stepnumber': '', 'workcenter': '', 'batchsize': '', 'cycletime': '', 'human_need': '', 'human_hours': '', 'human_need_to': ''},
 ]
 
 work_center_capacity = {
-    'ASSEMBLY': 2,
-    'FINISHING': 1,
-    'MACHINING': 2,
-    'MOLDING': 1,
-    'CASTING': 1,
+    '811ASMLY': 1,
+    '763WELDM': 1,
+    '770WHLBR': 1,
+    '771HCFIN': 1,
+    '764WELDM': 1,
+    '763SHR16': 1,
+    '761PUNCH': 1,
+    '763PRBRK': 1,
+    '763BDSAW': 1,
+    '763ACRO': 1,
+    '771VIKIN': 1,
+    '764PSMAP': 1,
+    '764PSMAO': 1,
+    '763DRLPR': 1,
+    '763IRONW': 1,
+    '761ASMLY': 1,
+    '761HSTUD': 1,
+    '761SPWLD': 1,
+    '761DBURR': 1,
+    '761FORM2': 1,
+    '761TWELD': 1,
+    '761POLSH': 1,
 }
 
 def run_scheduler(bom_data, customer_orders, work_center_capacity, *, base_start=None, show_chart=True):
