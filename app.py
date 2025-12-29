@@ -411,51 +411,59 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📋 Orders", "🔧 BOM", "🏭 W
 # --- Tab 1: Customer Orders ---
 with tab1:
     st.subheader("Customer Orders")
-    st.caption("Edit the table below. Click outside cell to save.")
+    st.caption("Edit the table, then click **Apply Changes** to save.")
     
-    edited_orders = st.data_editor(
-        st.session_state.orders_df,
-        num_rows="dynamic",
-        use_container_width=True,
-        column_config={
-            "order_number": st.column_config.TextColumn("Order #"),
-            "customer": st.column_config.TextColumn("Customer"),
-            "product": st.column_config.TextColumn("Product"),
-            "quantity": st.column_config.NumberColumn("Quantity", min_value=1),
-            "due_date": st.column_config.TextColumn("Due Date (YYYY-MM-DD)"),
-        },
-        hide_index=True,
-    )
-    st.session_state.orders_df = edited_orders
+    with st.form("orders_form", clear_on_submit=False):
+        edited_orders = st.data_editor(
+            st.session_state.orders_df,
+            num_rows="dynamic",
+            use_container_width=True,
+            column_config={
+                "order_number": st.column_config.TextColumn("Order #"),
+                "customer": st.column_config.TextColumn("Customer"),
+                "product": st.column_config.TextColumn("Product"),
+                "quantity": st.column_config.NumberColumn("Quantity", min_value=1),
+                "due_date": st.column_config.TextColumn("Due Date (YYYY-MM-DD)"),
+            },
+            hide_index=True,
+        )
+        if st.form_submit_button("✅ Apply Changes", type="primary"):
+            st.session_state.orders_df = edited_orders
+            st.success("Orders saved!")
+            st.rerun()
     st.caption(f"�� {len(edited_orders)} orders loaded")
 
 # --- Tab 2: BOM / Routing ---
 with tab2:
     st.subheader("Bill of Materials & Routing")
-    st.caption("Define your products, sub-assemblies, and raw materials.")
+    st.caption("Edit the table, then click **Apply Changes** to save.")
     
     st.info("**Part Types:** FA = Final Assembly, SA = Sub-Assembly, RW = Raw Material")
     
-    edited_bom = st.data_editor(
-        st.session_state.bom_df,
-        num_rows="dynamic",
-        use_container_width=True,
-        column_config={
-            "part_name": st.column_config.TextColumn("Part Name"),
-            "part_type": st.column_config.SelectboxColumn("Type", options=["FA", "SA", "RW"]),
-            "inputs_needed": st.column_config.TextColumn("Inputs"),
-            "input_qty_need": st.column_config.TextColumn("Input Qty"),
-            "stepnumber": st.column_config.TextColumn("Step #"),
-            "workcenter": st.column_config.TextColumn("Work Center"),
-            "batchsize": st.column_config.TextColumn("Batch Size"),
-            "cycletime": st.column_config.TextColumn("Cycle Time"),
-            "human_need": st.column_config.TextColumn("Workers"),
-            "human_hours": st.column_config.TextColumn("Hours"),
-            "human_need_to": st.column_config.TextColumn("Type"),
-        },
-        hide_index=True,
-    )
-    st.session_state.bom_df = edited_bom
+    with st.form("bom_form", clear_on_submit=False):
+        edited_bom = st.data_editor(
+            st.session_state.bom_df,
+            num_rows="dynamic",
+            use_container_width=True,
+            column_config={
+                "part_name": st.column_config.TextColumn("Part Name"),
+                "part_type": st.column_config.SelectboxColumn("Type", options=["FA", "SA", "RW"]),
+                "inputs_needed": st.column_config.TextColumn("Inputs"),
+                "input_qty_need": st.column_config.TextColumn("Input Qty"),
+                "stepnumber": st.column_config.TextColumn("Step #"),
+                "workcenter": st.column_config.TextColumn("Work Center"),
+                "batchsize": st.column_config.TextColumn("Batch Size"),
+                "cycletime": st.column_config.TextColumn("Cycle Time"),
+                "human_need": st.column_config.TextColumn("Workers"),
+                "human_hours": st.column_config.TextColumn("Hours"),
+                "human_need_to": st.column_config.TextColumn("Type"),
+            },
+            hide_index=True,
+        )
+        if st.form_submit_button("✅ Apply Changes", type="primary"):
+            st.session_state.bom_df = edited_bom
+            st.success("BOM saved!")
+            st.rerun()
     st.caption(f"�� {len(edited_bom)} BOM rows loaded")
 
 # --- Tab 3: Work Center Capacity ---
