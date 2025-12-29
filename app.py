@@ -888,8 +888,10 @@ if run:
         capacity = dict(zip(cap_df["work_center"], cap_df["num_machines"].astype(int)))
 
         with st.spinner("🔄 Running scheduler..."):
+            # Get production start datetime
+            prod_start_dt = st.session_state.get("production_start_datetime", datetime.now())
             scheduled, work_orders, plan, fig = run_scheduler(
-                bom, orders, capacity, show_chart=show_chart
+                bom, orders, capacity, base_start=prod_start_dt, show_chart=show_chart
             )
 
         st.session_state["scheduled"] = scheduled

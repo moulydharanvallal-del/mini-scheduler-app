@@ -33,7 +33,7 @@ def build_bom_index(bom_rows):
     return parts, last_step
 
 def plan_with_step_inventory(orders, bom_index, last_step_by_part):
-    def to_int_date(d): return int(d.replace('-', ''))
+    def to_int_date(d): return int((d or "99991231").replace('-', ''))
     orders_sorted = sorted(orders, key=lambda o: to_int_date(o['due_date']))
 
     inv_step = defaultdict(int)     # {(part, stepnumber): qty}
