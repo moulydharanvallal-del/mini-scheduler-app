@@ -406,7 +406,7 @@ if "capacity_df" not in st.session_state:
     st.session_state.capacity_df = pd.DataFrame(cap_list)
 
 # --- Tabs ---
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📋 Orders", "🔧 BOM", "🏭 Work Centers", "��️ Routing Map", "📊 Results"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📋 Orders", "🔧 BOM", "🏭 Work Centers", "��️ Routing Map", "📊 Results", "ℹ️ About"])
 
 # --- Tab 1: Customer Orders ---
 with tab1:
