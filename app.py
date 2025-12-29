@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
@@ -343,6 +344,32 @@ def clean_for_display(data):
 # --- Sidebar ---
 with st.sidebar:
     st.header("⚙️ Controls")
+    
+    # Production Start Date
+    st.subheader("📅 Production Start")
+    start_option = st.radio(
+        "Start production:",
+        ["Now", "Future Date"],
+        horizontal=True,
+        label_visibility="collapsed"
+    )
+    
+    if start_option == "Now":
+        production_start_date = datetime.now().date()
+    else:
+        production_start_date = st.date_input(
+            "Select start date:",
+            value=datetime.now().date() + timedelta(days=1),
+            min_value=datetime.now().date()
+        )
+    
+    st.caption(f"📆 Start: **{production_start_date.strftime('%Y-%m-%d')}**")
+    
+    # Store in session state for results tab
+    st.session_state['production_start_date'] = production_start_date
+    
+    st.divider()
+    
     show_chart = st.checkbox("Show Gantt chart", value=True)
     run = st.button("🚀 Run Scheduler", type="primary", use_container_width=True)
     
@@ -352,6 +379,7 @@ with st.sidebar:
             if key in st.session_state:
                 del st.session_state[key]
         st.rerun()
+
 
 # --- Initialize session state with defaults ---
 if "orders_df" not in st.session_state:
@@ -682,29 +710,96 @@ with tab5:
                 )
         
         # =====================================================
-        # 📋 ORDER SUMMARY
+        # =====================================================
+        # 📋 ORDER SUMMARY with On Track / Past Due
         # =====================================================
         st.markdown("## 📋 Order Completion Summary")
         
+        # Get production start date from session state
+        prod_start = st.session_state.get('production_start_date', datetime.now().date())
+        
+        # Calculate work hours per day (assume 8 hours)
+        WORK_HOURS_PER_DAY = 8
+        WORK_MINS_PER_DAY = WORK_HOURS_PER_DAY * 60
+        
         order_data = []
+        on_time_count = 0
+        late_count = 0
+        
         for order, end_mins in sorted(order_completion.items(), key=lambda x: x[1]):
-            due_date = order_due_dates.get(order, 'N/A')
+            due_date_str = order_due_dates.get(order, None)
             hours = end_mins / 60
-            days = hours / 8
+            work_days = hours / WORK_HOURS_PER_DAY
+            
+            # Calculate expected completion date
+            # end_mins is the time from production start in minutes
+            calendar_days = int(work_days * (7/5))  # Rough estimate accounting for weekends
+            expected_end_date = prod_start + timedelta(days=max(1, calendar_days))
+            
+            # Determine status
+            if due_date_str and due_date_str != 'N/A':
+                try:
+                    due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                    days_diff = (due_date - expected_end_date).days
+                    
+                    if expected_end_date <= due_date:
+                        status = "✅ On Track"
+                        status_color = "#22C55E"
+                        on_time_count += 1
+                        days_info = f"{days_diff} days early" if days_diff > 0 else "On time"
+                    else:
+                        status = "🔴 Past Due"
+                        status_color = "#EF4444"
+                        late_count += 1
+                        days_info = f"{abs(days_diff)} days late"
+                except:
+                    status = "⚪ Unknown"
+                    status_color = "#9CA3AF"
+                    days_info = "N/A"
+                    due_date_str = due_date_str
+            else:
+                status = "⚪ No Due Date"
+                status_color = "#9CA3AF"
+                days_info = "N/A"
             
             order_data.append({
                 'Order': order,
-                'Due Date': due_date,
-                'Completes At': f"{hours:.1f}h ({days:.1f} days)",
-                'End Time (mins)': f"{end_mins:.0f}"
+                'Due Date': due_date_str if due_date_str else 'N/A',
+                'Expected End': expected_end_date.strftime('%Y-%m-%d'),
+                'Production Time': f"{hours:.1f}h ({work_days:.1f} days)",
+                'Variance': days_info,
+                'Status': status
             })
         
+        # Show summary metrics
         if order_data:
-            st.dataframe(
-                pd.DataFrame(order_data),
-                use_container_width=True,
-                hide_index=True
-            )
+            summary_col1, summary_col2, summary_col3 = st.columns(3)
+            with summary_col1:
+                st.metric("📦 Total Orders", len(order_data))
+            with summary_col2:
+                st.metric("✅ On Track", on_time_count, delta=None)
+            with summary_col3:
+                if late_count > 0:
+                    st.metric("🔴 Past Due", late_count, delta=f"-{late_count}", delta_color="inverse")
+                else:
+                    st.metric("🔴 Past Due", 0, delta="All on track!", delta_color="normal")
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Create styled dataframe
+            order_df = pd.DataFrame(order_data)
+            
+            # Apply color styling to status column
+            def style_status(val):
+                if "On Track" in str(val):
+                    return 'background-color: #166534; color: white'
+                elif "Past Due" in str(val):
+                    return 'background-color: #991B1B; color: white'
+                return ''
+            
+            styled_df = order_df.style.applymap(style_status, subset=['Status'])
+            st.dataframe(styled_df, use_container_width=True, hide_index=True)
+
         
         # =====================================================
         # 📑 DETAILED DATA (Collapsible)
