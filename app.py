@@ -409,10 +409,9 @@ if "capacity_df" not in st.session_state:
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📋 Orders", "🔧 BOM", "🏭 Work Centers", "��️ Routing Map", "📊 Results", "ℹ️ About"])
 
 # --- Tab 1: Customer Orders ---
-@st.fragment
-def orders_editor_fragment():
+with tab1:
     st.subheader("Customer Orders")
-    st.caption("Edit the table below. Changes are saved automatically.")
+    st.caption("Edit the table below. Click outside cell to save.")
     
     edited_orders = st.data_editor(
         st.session_state.orders_df,
@@ -428,15 +427,11 @@ def orders_editor_fragment():
         hide_index=True,
         key="orders_editor"
     )
-    st.session_state.orders_df = edited_orders.copy()
+    st.session_state.orders_df = edited_orders
     st.caption(f"📌 {len(edited_orders)} orders loaded")
 
-with tab1:
-    orders_editor_fragment()
-
 # --- Tab 2: BOM / Routing ---
-@st.fragment
-def bom_editor_fragment():
+with tab2:
     st.subheader("Bill of Materials & Routing")
     st.caption("Define your products, sub-assemblies, and raw materials.")
     
@@ -462,15 +457,11 @@ def bom_editor_fragment():
         hide_index=True,
         key="bom_editor"
     )
-    st.session_state.bom_df = edited_bom.copy()
-    st.caption(f"📌 {len(edited_bom)} BOM rows loaded")
-
-with tab2:
-    bom_editor_fragment()
+    st.session_state.bom_df = edited_bom
+    st.caption(f"�� {len(edited_bom)} BOM rows loaded")
 
 # --- Tab 3: Work Center Capacity ---
-@st.fragment
-def capacity_editor_fragment():
+with tab3:
     st.subheader("Work Center Capacity")
     st.caption("Define how many machines/stations are available at each work center.")
     
@@ -488,15 +479,12 @@ def capacity_editor_fragment():
             hide_index=True,
             key="capacity_editor"
         )
-        st.session_state.capacity_df = edited_capacity.copy()
+        st.session_state.capacity_df = edited_capacity
     
     with col2:
         st.metric("Total Work Centers", len(edited_capacity))
         total_machines = int(edited_capacity["num_machines"].sum()) if not edited_capacity.empty else 0
         st.metric("Total Machines", total_machines)
-
-with tab3:
-    capacity_editor_fragment()
 
 # --- Tab 4: Routing Map ---
 with tab4:
