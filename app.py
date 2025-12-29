@@ -345,28 +345,37 @@ def clean_for_display(data):
 with st.sidebar:
     st.header("⚙️ Controls")
     
-    # Production Start Date
+    # Production Start DateTime
     st.subheader("📅 Production Start")
     start_option = st.radio(
         "Start production:",
-        ["Now", "Future Date"],
+        ["Now", "Future"],
         horizontal=True,
         label_visibility="collapsed"
     )
     
     if start_option == "Now":
-        production_start_date = datetime.now().date()
+        production_start_datetime = datetime.now()
     else:
-        production_start_date = st.date_input(
-            "Select start date:",
+        # Date picker
+        future_date = st.date_input(
+            "Date:",
             value=datetime.now().date() + timedelta(days=1),
             min_value=datetime.now().date()
         )
+        # Time picker
+        from datetime import time as dt_time
+        future_time = st.time_input(
+            "Time:",
+            value=dt_time(8, 0),  # Default 8:00 AM
+            step=1800  # 30-minute increments
+        )
+        production_start_datetime = datetime.combine(future_date, future_time)
     
-    st.caption(f"📆 Start: **{production_start_date.strftime('%Y-%m-%d')}**")
+    st.caption(f"📆 **{production_start_datetime.strftime('%Y-%m-%d %H:%M')}**")
     
     # Store in session state for results tab
-    st.session_state['production_start_date'] = production_start_date
+    st.session_state['production_start_datetime'] = production_start_datetime
     
     st.divider()
     
@@ -715,12 +724,8 @@ with tab5:
         # =====================================================
         st.markdown("## 📋 Order Completion Summary")
         
-        # Get production start date from session state
-        prod_start = st.session_state.get('production_start_date', datetime.now().date())
-        
-        # Calculate work hours per day (assume 8 hours)
-        WORK_HOURS_PER_DAY = 8
-        WORK_MINS_PER_DAY = WORK_HOURS_PER_DAY * 60
+        # Get production start datetime from session state
+        prod_start = st.session_state.get('production_start_datetime', datetime.now())
         
         order_data = []
         on_time_count = 0
@@ -729,12 +734,11 @@ with tab5:
         for order, end_mins in sorted(order_completion.items(), key=lambda x: x[1]):
             due_date_str = order_due_dates.get(order, None)
             hours = end_mins / 60
-            work_days = hours / WORK_HOURS_PER_DAY
             
-            # Calculate expected completion date
+            # Calculate expected completion datetime
             # end_mins is the time from production start in minutes
-            calendar_days = int(work_days * (7/5))  # Rough estimate accounting for weekends
-            expected_end_date = prod_start + timedelta(days=max(1, calendar_days))
+            expected_end_datetime = prod_start + timedelta(minutes=end_mins)
+            expected_end_date = expected_end_datetime.date()
             
             # Determine status
             if due_date_str and due_date_str != 'N/A':
@@ -744,32 +748,28 @@ with tab5:
                     
                     if expected_end_date <= due_date:
                         status = "✅ On Track"
-                        status_color = "#22C55E"
                         on_time_count += 1
-                        days_info = f"{days_diff} days early" if days_diff > 0 else "On time"
+                        days_info = f"{days_diff}d early" if days_diff > 0 else "On time"
                     else:
                         status = "🔴 Past Due"
-                        status_color = "#EF4444"
                         late_count += 1
-                        days_info = f"{abs(days_diff)} days late"
+                        days_info = f"{abs(days_diff)}d late"
                 except:
                     status = "⚪ Unknown"
-                    status_color = "#9CA3AF"
                     days_info = "N/A"
-                    due_date_str = due_date_str
             else:
                 status = "⚪ No Due Date"
-                status_color = "#9CA3AF"
                 days_info = "N/A"
             
             order_data.append({
                 'Order': order,
                 'Due Date': due_date_str if due_date_str else 'N/A',
-                'Expected End': expected_end_date.strftime('%Y-%m-%d'),
-                'Production Time': f"{hours:.1f}h ({work_days:.1f} days)",
+                'Expected End': expected_end_datetime.strftime('%Y-%m-%d %H:%M'),
+                'Duration': f"{hours:.1f}h",
                 'Variance': days_info,
                 'Status': status
             })
+
         
         # Show summary metrics
         if order_data:
