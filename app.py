@@ -12,9 +12,9 @@ from scheduler_core import (
     work_center_capacity as DEFAULT_CAPACITY,
 )
 
-st.set_page_config(page_title="FlowForge", layout="wide")
+st.set_page_config(page_title="ShopPro", layout="wide")
 
-st.title("🏭 FlowForge")
+st.title("🏭 ShopPro")
 st.caption("Enter your data in the tables below, then click Run to generate a schedule.")
 
 # --- Dynamic Color Palette ---
@@ -343,7 +343,7 @@ def clean_for_display(data):
 
 # --- Sidebar ---
 with st.sidebar:
-    st.header("⚡ FlowForge")
+    st.header("⚡ ShopPro")
     st.caption("Manufacturing Scheduler")
     
     st.divider()
@@ -944,102 +944,128 @@ if run:
 # --- Tab 6: About ---
 with tab6:
     st.markdown("""
-    # ⚡ FlowForge
-    ### Smart Manufacturing Scheduling Made Simple
+    # �� ShopPro
+    ### An Open Educational Platform for Manufacturing Systems
     
     ---
     
-    ## 🎯 What is FlowForge?
+    ## ⚠️ Disclaimer
     
-    FlowForge is a **visual production scheduler** that helps you plan and optimize your manufacturing operations. 
-    Think of it as your factory's GPS - it figures out the best route to get all your orders done on time.
-    
-    ---
-    
-    ## 🚀 How It Works (In 60 Seconds)
-    
-    ### Step 1: Enter Your Orders 📋
-    Tell us what you need to make and when it's due.
-    
-    | Order | Product | Quantity | Due Date |
-    |-------|---------|----------|----------|
-    | ORD-001 | Widget-A | 100 | 2025-01-15 |
-    
-    ### Step 2: Define Your BOM 🔧
-    Describe how products are made - what steps, what processes, how long each takes.
-    
-    | Product | Step | Process | Cycle Time |
-    |---------|------|---------|------------|
-    | Widget-A | 1 | Cutting | 30 mins |
-    | Widget-A | 2 | Welding | 45 mins |
-    
-    ### Step 3: Set Your Capacity 🏭
-    Tell us what equipment you have and how many of each.
-    
-    | Work Center | # Machines |
-    |-------------|------------|
-    | Cutting | 2 |
-    | Welding | 3 |
-    
-    ### Step 4: Hit Run! 🚀
-    FlowForge automatically:
-    - Sequences operations in the right order
-    - Assigns work to available machines
-    - Respects dependencies (Step 2 can't start before Step 1)
-    - Shows you when each order will complete
+    > **This application is developed solely for illustrative and educational purposes.**
+    > It is not intended for commercial use or production planning in real manufacturing environments.
+    > The author assumes no liability for decisions made based on this tool's outputs.
     
     ---
     
-    ## 📊 What You Get
+    ## 🎯 Vision & Purpose
     
-    | Feature | Description |
-    |---------|-------------|
-    | **Gantt Chart** | Visual timeline of all operations |
-    | **Makespan** | Total time to complete everything |
-    | **Bottleneck Detection** | Which work center is slowing you down |
-    | **Utilization %** | How efficiently you're using equipment |
-    | **On-Time Analysis** | Which orders will be late |
+    ShopPro was created to **democratize access to manufacturing scheduling concepts** and bridge 
+    the gap between theoretical Industrial Engineering (IE) education and practical application.
     
-    ---
+    ### The Problem We're Solving
     
-    ## 🧠 Key Concepts
+    Manufacturing scheduling is a cornerstone of Industrial Engineering, yet:
+    - Academic textbooks often present concepts abstractly without interactive visualization
+    - Commercial scheduling software is expensive and complex, creating barriers for students
+    - Researchers lack accessible tools to prototype and validate scheduling algorithms
     
-    ### Makespan
-    The total time from when production starts to when the last order finishes.
-    *Shorter = Better*
+    ### Our Contribution to the Field
     
-    ### Bottleneck
-    The work center with the highest load per machine. This is what's limiting your throughput.
-    *Focus improvement efforts here!*
+    This platform represents an **original contribution to the Industrial Engineering and Operations Research community** by:
     
-    ### Utilization
-    `(Total Work Time) ÷ (Available Time × Machines) × 100`
+    1. **Providing an open-source, interactive scheduling simulator** that visualizes complex concepts like:
+       - Job-shop scheduling with precedence constraints
+       - Work center capacity planning and load balancing
+       - Bill of Materials (BOM) explosion and routing logic
+       - Makespan optimization and bottleneck identification
     
-    - **< 50%**: Underutilized - consider reducing machines
-    - **50-80%**: Healthy range
-    - **> 80%**: Near capacity - watch for delays
+    2. **Enabling hands-on learning** where students can:
+       - Modify inputs and immediately see scheduling impacts
+       - Understand utilization calculations and their implications
+       - Visualize Gantt charts and production timelines
+       - Experiment with capacity scenarios
     
-    ---
-    
-    ## 💡 Pro Tips
-    
-    1. **Start with sample data** - Click "Reset to Sample Data" to see a working example
-    2. **Check the Routing Map** - Visualize how products flow through your factory
-    3. **Adjust capacity** - Add/remove machines to see impact on schedule
-    4. **Change due dates** - See which orders go from "On Track" to "Past Due"
+    3. **Supporting research and innovation** by offering a foundation that researchers can extend for:
+       - Algorithm comparison studies
+       - Heuristic development and testing
+       - Educational curriculum development
+       - Industry training programs
     
     ---
     
-    ## 🛠️ Built With
+    ## 🚀 How It Works
     
-    - **Python** + **Streamlit** for the UI
-    - **Plotly** for interactive charts
-    - **Custom scheduling engine** for optimization
+    ### Step 1: Define Orders 📋
+    Enter customer orders with products, quantities, and due dates.
+    
+    ### Step 2: Configure BOM 🔧  
+    Describe manufacturing steps, processes, and cycle times for each product.
+    
+    ### Step 3: Set Capacity 🏭
+    Specify work centers and number of available machines.
+    
+    ### Step 4: Run Scheduler 🚀
+    The algorithm automatically:
+    - Explodes BOM to generate work orders
+    - Sequences operations respecting precedence constraints
+    - Assigns work to available equipment
+    - Calculates completion times and identifies bottlenecks
     
     ---
     
-    <div style="text-align: center; padding: 20px; color: #64748B;">
-        <p>Made with ❤️ for manufacturers who want to stop using spreadsheets</p>
-        <p style="font-size: 12px;">FlowForge v1.0</p>
+    ## 📊 Key Metrics Explained
+    
+    | Metric | Definition | Why It Matters |
+    |--------|------------|----------------|
+    | **Makespan** | Total time from first operation to last completion | Primary measure of schedule efficiency |
+    | **Utilization %** | `Work Time ÷ (Available Time × Machines)` | Indicates capacity usage efficiency |
+    | **Bottleneck** | Work center with highest load per machine | Focus area for improvement efforts |
+    
+    ---
+    
+    ## 🎓 Educational Applications
+    
+    - **Undergraduate IE Courses**: Production planning, operations management
+    - **Graduate Research**: Algorithm development, optimization studies
+    - **Professional Training**: Manufacturing systems fundamentals
+    - **Self-Learning**: Interactive exploration of scheduling concepts
+    
+    ---
+    
+    ## 🛠️ Technical Foundation
+    
+    - **Frontend**: Python, Streamlit
+    - **Visualization**: Plotly, Graphviz
+    - **Scheduling Engine**: Custom implementation with precedence-aware dispatching
+    
+    ---
+    
+    ## 📚 Suggested Reading
+    
+    For those wanting to deepen their understanding:
+    - *Manufacturing Planning and Control for Supply Chain Management* - Jacobs et al.
+    - *Factory Physics* - Hopp & Spearman
+    - *Introduction to Sequencing and Scheduling* - Baker & Trietsch
+    
+    ---
+    
+    <div style="background: linear-gradient(135deg, #1E293B 0%, #334155 100%); 
+                padding: 24px; border-radius: 12px; margin-top: 20px;">
+        <p style="color: #94A3B8; font-size: 14px; margin-bottom: 12px;">
+            <strong style="color: #E2E8F0;">About the Author</strong>
+        </p>
+        <p style="color: #CBD5E1; font-size: 13px; line-height: 1.6;">
+            This platform was developed as part of ongoing efforts to advance Industrial Engineering 
+            education and create accessible tools for the global IE community. The author's work 
+            focuses on bridging academic concepts with practical applications, contributing to 
+            workforce development and knowledge dissemination in manufacturing systems.
+        </p>
+        <p style="color: #64748B; font-size: 12px; margin-top: 16px;">
+            🌐 Open Source | 📖 Educational Use | 🎓 Research Friendly
+        </p>
+    </div>
+    
+    <div style="text-align: center; padding: 20px; color: #475569; font-size: 11px;">
+        ShopPro v1.0 | For Educational & Research Purposes Only
     </div>
     """, unsafe_allow_html=True)
