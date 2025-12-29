@@ -425,10 +425,9 @@ with tab1:
             "due_date": st.column_config.TextColumn("Due Date (YYYY-MM-DD)"),
         },
         hide_index=True,
-        key="orders_editor"
     )
     st.session_state.orders_df = edited_orders
-    st.caption(f"📌 {len(edited_orders)} orders loaded")
+    st.caption(f"�� {len(edited_orders)} orders loaded")
 
 # --- Tab 2: BOM / Routing ---
 with tab2:
@@ -455,7 +454,6 @@ with tab2:
             "human_need_to": st.column_config.TextColumn("Type"),
         },
         hide_index=True,
-        key="bom_editor"
     )
     st.session_state.bom_df = edited_bom
     st.caption(f"�� {len(edited_bom)} BOM rows loaded")
@@ -477,7 +475,6 @@ with tab3:
                 "num_machines": st.column_config.NumberColumn("# Machines", min_value=1, max_value=100),
             },
             hide_index=True,
-            key="capacity_editor"
         )
         st.session_state.capacity_df = edited_capacity
     
