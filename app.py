@@ -461,26 +461,29 @@ with tab2:
 # --- Tab 3: Work Center Capacity ---
 with tab3:
     st.subheader("Work Center Capacity")
-    st.caption("Define how many machines/stations are available at each work center.")
+    st.caption("Edit the table, then click **Apply Changes** to save.")
     
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        edited_capacity = st.data_editor(
-            st.session_state.capacity_df,
-            num_rows="dynamic",
-            use_container_width=True,
-            column_config={
-                "work_center": st.column_config.TextColumn("Work Center"),
-                "num_machines": st.column_config.NumberColumn("# Machines", min_value=1, max_value=100),
-            },
-            hide_index=True,
-        )
-        st.session_state.capacity_df = edited_capacity
+        with st.form("capacity_form", clear_on_submit=False):
+            edited_capacity = st.data_editor(
+                st.session_state.capacity_df,
+                num_rows="dynamic",
+                use_container_width=True,
+                column_config={
+                    "work_center": st.column_config.TextColumn("Work Center"),
+                    "num_machines": st.column_config.NumberColumn("# Machines", min_value=1, max_value=100),
+                },
+                hide_index=True,
+            )
+            if st.form_submit_button("✅ Apply Changes", type="primary"):
+                st.session_state.capacity_df = edited_capacity
+                st.success("Capacity saved!")
     
     with col2:
-        st.metric("Total Work Centers", len(edited_capacity))
-        total_machines = int(edited_capacity["num_machines"].sum()) if not edited_capacity.empty else 0
+        st.metric("Total Work Centers", len(st.session_state.capacity_df))
+        total_machines = int(st.session_state.capacity_df["num_machines"].sum()) if not st.session_state.capacity_df.empty else 0
         st.metric("Total Machines", total_machines)
 
 # --- Tab 4: Routing Map ---
