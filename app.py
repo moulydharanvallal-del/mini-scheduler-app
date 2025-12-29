@@ -14,6 +14,12 @@ from scheduler_core import (
 
 st.set_page_config(page_title="FlowLab", layout="wide")
 
+# Analytics - GoatCounter (privacy-friendly, no cookies)
+import streamlit.components.v1 as components
+components.html("""
+    <script data-goatcounter="https://flowlab.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+""", height=0)
+
 st.markdown("""
 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 0;">
     <span style="font-size: 2.5rem;">🔁</span>
@@ -1082,7 +1088,21 @@ Rather than optimizing away complexity, FlowLab surfaces it.
 
 ---
 
-<div style="text-align: center; padding: 20px; color: #64748B; font-size: 0.9rem;">
-    🌐 Open  •  📖 Educational  •  🧪 Exploratory
+<div style="text-align: center; padding: 20px; margin-top: 20px;">
+    <p style="color: #64748B; font-size: 0.9rem; margin-bottom: 15px;">
+        🌐 Open  •  📖 Educational  •  🧪 Exploratory
+    </p>
+    <div style="background: linear-gradient(135deg, #1E293B 0%, #334155 100%); 
+                padding: 20px; border-radius: 12px; display: inline-block;">
+        <p style="color: #E2E8F0; font-size: 1rem; margin: 0 0 8px 0;">
+            <strong>Created by Moulydharan Vallal</strong>
+        </p>
+        <p style="color: #94A3B8; font-size: 0.85rem; margin: 0;">
+            Industrial Engineering Practitioner
+        </p>
+    </div>
+    <p style="color: #64748B; font-size: 0.8rem; margin-top: 15px;">
+        🍴 Feel free to fork, use, and build upon this for any purpose.
+    </p>
 </div>
     """, unsafe_allow_html=True)

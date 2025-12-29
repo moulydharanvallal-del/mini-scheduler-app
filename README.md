@@ -83,6 +83,17 @@ Issues and PRs welcome! This is an educational project — improvements that hel
 
 ---
 
+---
+
+## 👤 Author
+
+**Moulydharan Vallal**  
+Industrial Engineering Practitioner
+
+🍴 Feel free to fork, use, and build upon this for any purpose.
+
+---
+
 **Define** your system → **Understand** the constraints → **Optimize** the flow
 
 🌐 Open • 📖 Educational • 🧪 Exploratory
