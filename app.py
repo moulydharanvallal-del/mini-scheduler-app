@@ -12,9 +12,9 @@ from scheduler_core import (
     work_center_capacity as DEFAULT_CAPACITY,
 )
 
-st.set_page_config(page_title="Mini Manufacturing Scheduler", layout="wide")
+st.set_page_config(page_title="FlowForge", layout="wide")
 
-st.title("🏭 Mini Manufacturing Scheduler")
+st.title("🏭 FlowForge")
 st.caption("Enter your data in the tables below, then click Run to generate a schedule.")
 
 # --- Dynamic Color Palette ---
@@ -343,37 +343,47 @@ def clean_for_display(data):
 
 # --- Sidebar ---
 with st.sidebar:
-    st.header("⚙️ Controls")
-    
-    # Production Start Date & Time
-    st.subheader("📅 Production Start")
-    from datetime import time as dt_time
-    
-    prod_date = st.date_input(
-        "Date",
-        value=datetime.now().date(),
-        label_visibility="collapsed"
-    )
-    prod_time = st.time_input(
-        "Time",
-        value=dt_time(8, 0),  # Default 8:00 AM
-        step=1800,  # 30-minute increments
-        label_visibility="collapsed"
-    )
-    production_start_datetime = datetime.combine(prod_date, prod_time)
-    
-    st.caption(f"📆 {production_start_datetime.strftime('%b %d, %Y at %H:%M')}")
-    
-    # Store in session state for results tab
-    st.session_state['production_start_datetime'] = production_start_datetime
+    st.header("⚡ FlowForge")
+    st.caption("Manufacturing Scheduler")
     
     st.divider()
     
-    show_chart = st.checkbox("Show Gantt chart", value=True)
-    run = st.button("🚀 Run Scheduler", type="primary", use_container_width=True)
+    # Use form to prevent constant reruns
+    with st.form("scheduler_form"):
+        # Production Start Date & Time
+        st.subheader("📅 Production Start")
+        from datetime import time as dt_time
+        
+        prod_date = st.date_input(
+            "Date",
+            value=datetime.now().date(),
+            label_visibility="collapsed"
+        )
+        prod_time = st.time_input(
+            "Time",
+            value=dt_time(8, 0),  # Default 8:00 AM
+            step=1800,  # 30-minute increments
+            label_visibility="collapsed"
+        )
+        
+        st.divider()
+        
+        show_chart = st.checkbox("Show Gantt chart", value=True)
+        
+        st.divider()
+        
+        # Submit button
+        run = st.form_submit_button("🚀 Run Scheduler", type="primary", use_container_width=True)
+    
+    # Process form submission
+    if run:
+        production_start_datetime = datetime.combine(prod_date, prod_time)
+        st.session_state['production_start_datetime'] = production_start_datetime
+        st.session_state['show_chart'] = show_chart
     
     st.divider()
-    if st.button("🔄 Reset to Sample Data"):
+    
+    if st.button("🔄 Reset to Sample Data", use_container_width=True):
         for key in ["orders_df", "bom_df", "capacity_df", "scheduled", "work_orders", "plan", "fig"]:
             if key in st.session_state:
                 del st.session_state[key]
@@ -916,7 +926,7 @@ if run:
             # Get production start datetime
             prod_start_dt = st.session_state.get("production_start_datetime", datetime.now())
             scheduled, work_orders, plan, fig = run_scheduler(
-                bom, orders, capacity, base_start=prod_start_dt, show_chart=show_chart
+                bom, orders, capacity, base_start=prod_start_dt, show_chart=st.session_state.get('show_chart', True)
             )
 
         st.session_state["scheduled"] = scheduled
@@ -930,3 +940,106 @@ if run:
     except Exception as e:
         st.error(f"❌ Error: {str(e)}")
         st.exception(e)
+
+# --- Tab 6: About ---
+with tab6:
+    st.markdown("""
+    # ⚡ FlowForge
+    ### Smart Manufacturing Scheduling Made Simple
+    
+    ---
+    
+    ## 🎯 What is FlowForge?
+    
+    FlowForge is a **visual production scheduler** that helps you plan and optimize your manufacturing operations. 
+    Think of it as your factory's GPS - it figures out the best route to get all your orders done on time.
+    
+    ---
+    
+    ## 🚀 How It Works (In 60 Seconds)
+    
+    ### Step 1: Enter Your Orders 📋
+    Tell us what you need to make and when it's due.
+    
+    | Order | Product | Quantity | Due Date |
+    |-------|---------|----------|----------|
+    | ORD-001 | Widget-A | 100 | 2025-01-15 |
+    
+    ### Step 2: Define Your BOM 🔧
+    Describe how products are made - what steps, what processes, how long each takes.
+    
+    | Product | Step | Process | Cycle Time |
+    |---------|------|---------|------------|
+    | Widget-A | 1 | Cutting | 30 mins |
+    | Widget-A | 2 | Welding | 45 mins |
+    
+    ### Step 3: Set Your Capacity 🏭
+    Tell us what equipment you have and how many of each.
+    
+    | Work Center | # Machines |
+    |-------------|------------|
+    | Cutting | 2 |
+    | Welding | 3 |
+    
+    ### Step 4: Hit Run! 🚀
+    FlowForge automatically:
+    - Sequences operations in the right order
+    - Assigns work to available machines
+    - Respects dependencies (Step 2 can't start before Step 1)
+    - Shows you when each order will complete
+    
+    ---
+    
+    ## 📊 What You Get
+    
+    | Feature | Description |
+    |---------|-------------|
+    | **Gantt Chart** | Visual timeline of all operations |
+    | **Makespan** | Total time to complete everything |
+    | **Bottleneck Detection** | Which work center is slowing you down |
+    | **Utilization %** | How efficiently you're using equipment |
+    | **On-Time Analysis** | Which orders will be late |
+    
+    ---
+    
+    ## 🧠 Key Concepts
+    
+    ### Makespan
+    The total time from when production starts to when the last order finishes.
+    *Shorter = Better*
+    
+    ### Bottleneck
+    The work center with the highest load per machine. This is what's limiting your throughput.
+    *Focus improvement efforts here!*
+    
+    ### Utilization
+    `(Total Work Time) ÷ (Available Time × Machines) × 100`
+    
+    - **< 50%**: Underutilized - consider reducing machines
+    - **50-80%**: Healthy range
+    - **> 80%**: Near capacity - watch for delays
+    
+    ---
+    
+    ## 💡 Pro Tips
+    
+    1. **Start with sample data** - Click "Reset to Sample Data" to see a working example
+    2. **Check the Routing Map** - Visualize how products flow through your factory
+    3. **Adjust capacity** - Add/remove machines to see impact on schedule
+    4. **Change due dates** - See which orders go from "On Track" to "Past Due"
+    
+    ---
+    
+    ## 🛠️ Built With
+    
+    - **Python** + **Streamlit** for the UI
+    - **Plotly** for interactive charts
+    - **Custom scheduling engine** for optimization
+    
+    ---
+    
+    <div style="text-align: center; padding: 20px; color: #64748B;">
+        <p>Made with ❤️ for manufacturers who want to stop using spreadsheets</p>
+        <p style="font-size: 12px;">FlowForge v1.0</p>
+    </div>
+    """, unsafe_allow_html=True)
