@@ -430,7 +430,6 @@ with tab1:
         if st.form_submit_button("✅ Apply Changes", type="primary"):
             st.session_state.orders_df = edited_orders
             st.success("Orders saved!")
-            st.rerun()
     st.caption(f"�� {len(edited_orders)} orders loaded")
 
 # --- Tab 2: BOM / Routing ---
@@ -463,7 +462,6 @@ with tab2:
         if st.form_submit_button("✅ Apply Changes", type="primary"):
             st.session_state.bom_df = edited_bom
             st.success("BOM saved!")
-            st.rerun()
     st.caption(f"�� {len(edited_bom)} BOM rows loaded")
 
 # --- Tab 3: Work Center Capacity ---
