@@ -411,6 +411,19 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📋 Orders", "🔧 BOM", "🏭 W
 # --- Tab 1: Customer Orders ---
 with tab1:
     st.subheader("Customer Orders")
+    
+    # Download/Upload section
+    col_dl, col_ul = st.columns(2)
+    with col_dl:
+        csv_orders = st.session_state.orders_df.to_csv(index=False)
+        st.download_button("📥 Download Orders CSV", csv_orders, "orders.csv", "text/csv", key="dl_orders")
+    with col_ul:
+        uploaded_orders = st.file_uploader("📤 Upload Orders CSV", type=["csv"], key="ul_orders", label_visibility="collapsed")
+        if uploaded_orders:
+            st.session_state.orders_df = pd.read_csv(uploaded_orders)
+            st.success("Orders uploaded!")
+            st.rerun()
+    
     st.caption("Edit the table, then click **Apply Changes** to save.")
     
     with st.form("orders_form", clear_on_submit=False):
@@ -435,6 +448,22 @@ with tab1:
 # --- Tab 2: BOM / Routing ---
 with tab2:
     st.subheader("Bill of Materials & Routing")
+    
+    # Download/Upload section
+    col_dl, col_ul = st.columns(2)
+    with col_dl:
+        csv_bom = st.session_state.bom_df.to_csv(index=False)
+        st.download_button("📥 Download BOM CSV", csv_bom, "bom.csv", "text/csv", key="dl_bom")
+    with col_ul:
+        uploaded_bom = st.file_uploader("📤 Upload BOM CSV", type=["csv"], key="ul_bom", label_visibility="collapsed")
+        if uploaded_bom:
+            df = pd.read_csv(uploaded_bom)
+            for col in df.columns:
+                df[col] = df[col].astype(str).replace("nan", "").replace("<NA>", "")
+            st.session_state.bom_df = df
+            st.success("BOM uploaded!")
+            st.rerun()
+    
     st.caption("Edit the table, then click **Apply Changes** to save.")
     
     st.info("**Part Types:** FA = Final Assembly, SA = Sub-Assembly, RW = Raw Material")
@@ -467,6 +496,19 @@ with tab2:
 # --- Tab 3: Work Center Capacity ---
 with tab3:
     st.subheader("Work Center Capacity")
+    
+    # Download/Upload section
+    col_dl, col_ul = st.columns(2)
+    with col_dl:
+        csv_cap = st.session_state.capacity_df.to_csv(index=False)
+        st.download_button("📥 Download Capacity CSV", csv_cap, "capacity.csv", "text/csv", key="dl_cap")
+    with col_ul:
+        uploaded_cap = st.file_uploader("📤 Upload Capacity CSV", type=["csv"], key="ul_cap", label_visibility="collapsed")
+        if uploaded_cap:
+            st.session_state.capacity_df = pd.read_csv(uploaded_cap)
+            st.success("Capacity uploaded!")
+            st.rerun()
+    
     st.caption("Edit the table, then click **Apply Changes** to save.")
     
     col1, col2 = st.columns([2, 1])
@@ -928,12 +970,18 @@ if run:
         cap_df = st.session_state.capacity_df
         capacity = dict(zip(cap_df["work_center"], cap_df["num_machines"].astype(int)))
 
-        with st.spinner("🔄 Running scheduler..."):
+        # Show prominent status
+        status_container = st.empty()
+        status_container.info("⏳ **Scheduler is running...** This may take a moment on first run.")
+        
+        with st.spinner("🔄 Processing BOM, generating work orders, and scheduling..."):
             # Get production start datetime
             prod_start_dt = st.session_state.get("production_start_datetime", datetime.now())
             scheduled, work_orders, plan, fig = run_scheduler(
                 bom, orders, capacity, base_start=prod_start_dt, show_chart=st.session_state.get('show_chart', True)
             )
+        
+        status_container.empty()
 
         st.session_state["scheduled"] = scheduled
         st.session_state["work_orders"] = work_orders
