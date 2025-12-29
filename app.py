@@ -428,8 +428,10 @@ def orders_editor_fragment():
         hide_index=True,
         key="orders_editor"
     )
-    st.session_state.orders_df = edited_orders
-    st.caption(f"📌 {len(edited_orders)} orders loaded")
+    # Update session state only after user finishes editing (not on every keystroke)
+    if "orders_editor" in st.session_state:
+        st.session_state.orders_df = st.session_state.orders_editor
+    st.caption(f"📌 {len(st.session_state.orders_df)} orders loaded")
 
 with tab1:
     orders_editor_fragment()
@@ -462,8 +464,9 @@ def bom_editor_fragment():
         hide_index=True,
         key="bom_editor"
     )
-    st.session_state.bom_df = edited_bom
-    st.caption(f"📌 {len(edited_bom)} BOM rows loaded")
+    if "bom_editor" in st.session_state:
+        st.session_state.bom_df = st.session_state.bom_editor
+    st.caption(f"📌 {len(st.session_state.bom_df)} BOM rows loaded")
 
 with tab2:
     bom_editor_fragment()
@@ -488,11 +491,12 @@ def capacity_editor_fragment():
             hide_index=True,
             key="capacity_editor"
         )
-        st.session_state.capacity_df = edited_capacity
+        if "capacity_editor" in st.session_state:
+            st.session_state.capacity_df = st.session_state.capacity_editor
     
     with col2:
-        st.metric("Total Work Centers", len(edited_capacity))
-        total_machines = int(edited_capacity["num_machines"].sum()) if not edited_capacity.empty else 0
+        st.metric("Total Work Centers", len(st.session_state.capacity_df))
+        total_machines = int(st.session_state.capacity_df["num_machines"].sum()) if not st.session_state.capacity_df.empty else 0
         st.metric("Total Machines", total_machines)
 
 with tab3:
