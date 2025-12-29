@@ -409,7 +409,8 @@ if "capacity_df" not in st.session_state:
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📋 Orders", "🔧 BOM", "🏭 Work Centers", "��️ Routing Map", "📊 Results", "ℹ️ About"])
 
 # --- Tab 1: Customer Orders ---
-with tab1:
+@st.fragment
+def orders_editor_fragment():
     st.subheader("Customer Orders")
     st.caption("Edit the table below. Changes are saved automatically.")
     
@@ -430,8 +431,12 @@ with tab1:
     st.session_state.orders_df = edited_orders
     st.caption(f"📌 {len(edited_orders)} orders loaded")
 
+with tab1:
+    orders_editor_fragment()
+
 # --- Tab 2: BOM / Routing ---
-with tab2:
+@st.fragment
+def bom_editor_fragment():
     st.subheader("Bill of Materials & Routing")
     st.caption("Define your products, sub-assemblies, and raw materials.")
     
@@ -460,8 +465,12 @@ with tab2:
     st.session_state.bom_df = edited_bom
     st.caption(f"📌 {len(edited_bom)} BOM rows loaded")
 
+with tab2:
+    bom_editor_fragment()
+
 # --- Tab 3: Work Center Capacity ---
-with tab3:
+@st.fragment
+def capacity_editor_fragment():
     st.subheader("Work Center Capacity")
     st.caption("Define how many machines/stations are available at each work center.")
     
@@ -485,6 +494,9 @@ with tab3:
         st.metric("Total Work Centers", len(edited_capacity))
         total_machines = int(edited_capacity["num_machines"].sum()) if not edited_capacity.empty else 0
         st.metric("Total Machines", total_machines)
+
+with tab3:
+    capacity_editor_fragment()
 
 # --- Tab 4: Routing Map ---
 with tab4:
