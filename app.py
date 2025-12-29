@@ -345,34 +345,24 @@ def clean_for_display(data):
 with st.sidebar:
     st.header("⚙️ Controls")
     
-    # Production Start DateTime
+    # Production Start Date & Time
     st.subheader("📅 Production Start")
-    start_option = st.radio(
-        "Start production:",
-        ["Now", "Future"],
-        horizontal=True,
+    from datetime import time as dt_time
+    
+    prod_date = st.date_input(
+        "Date",
+        value=datetime.now().date(),
         label_visibility="collapsed"
     )
+    prod_time = st.time_input(
+        "Time",
+        value=dt_time(8, 0),  # Default 8:00 AM
+        step=1800,  # 30-minute increments
+        label_visibility="collapsed"
+    )
+    production_start_datetime = datetime.combine(prod_date, prod_time)
     
-    if start_option == "Now":
-        production_start_datetime = datetime.now()
-    else:
-        # Date picker
-        future_date = st.date_input(
-            "Date:",
-            value=datetime.now().date() + timedelta(days=1),
-            min_value=datetime.now().date()
-        )
-        # Time picker
-        from datetime import time as dt_time
-        future_time = st.time_input(
-            "Time:",
-            value=dt_time(8, 0),  # Default 8:00 AM
-            step=1800  # 30-minute increments
-        )
-        production_start_datetime = datetime.combine(future_date, future_time)
-    
-    st.caption(f"📆 **{production_start_datetime.strftime('%Y-%m-%d %H:%M')}**")
+    st.caption(f"📆 {production_start_datetime.strftime('%b %d, %Y at %H:%M')}")
     
     # Store in session state for results tab
     st.session_state['production_start_datetime'] = production_start_datetime
