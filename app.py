@@ -351,8 +351,8 @@ def clean_for_display(data):
 
 # --- Sidebar ---
 with st.sidebar:
-    st.header("⚡ FlowLab")
-    st.caption("Manufacturing Scheduler")
+    st.header("🎛️ Control Panel")
+    
     
     st.divider()
     
