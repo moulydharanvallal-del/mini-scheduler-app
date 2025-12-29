@@ -563,6 +563,12 @@ with tab5:
         # =====================================================
         # CORE METRICS CALCULATION (all times in MINUTES)
         # =====================================================
+        # CORE METRICS CALCULATION (all times in MINUTES)
+        # =====================================================
+        
+        # Get capacity data (# machines per WC)
+        cap_df = st.session_state.capacity_df
+        wc_machines = dict(zip(cap_df["work_center"], cap_df["num_machines"].astype(int)))
         
         # Makespan (total production time)
         start_times = [r.get('start_time', 0) for r in scheduled]
@@ -590,13 +596,31 @@ with tab5:
             wc_load_mins[wc] = wc_load_mins.get(wc, 0) + duration
             wc_run_count[wc] = wc_run_count.get(wc, 0) + 1
         
-        # Bottleneck (most loaded WC)
-        bottleneck_wc = max(wc_load_mins, key=wc_load_mins.get) if wc_load_mins else "N/A"
-        bottleneck_mins = wc_load_mins.get(bottleneck_wc, 0)
+        # Calculate load per machine for each WC
+        wc_load_per_machine = {}
+        for wc, total_load in wc_load_mins.items():
+            num_machines = wc_machines.get(wc, 1)
+            wc_load_per_machine[wc] = total_load / num_machines
+        
+        # Bottleneck = WC with highest load PER MACHINE
+        bottleneck_wc = max(wc_load_per_machine, key=wc_load_per_machine.get) if wc_load_per_machine else "N/A"
+        bottleneck_load_per_machine = wc_load_per_machine.get(bottleneck_wc, 0)
+        bottleneck_machines = wc_machines.get(bottleneck_wc, 1)
+        
+        # Calculate utilization % = (WC Load) / (Makespan × # Machines)
+        wc_utilization = {}
+        for wc, total_load in wc_load_mins.items():
+            num_machines = wc_machines.get(wc, 1)
+            max_possible = makespan_mins * num_machines
+            if max_possible > 0:
+                wc_utilization[wc] = (total_load / max_possible) * 100
+            else:
+                wc_utilization[wc] = 0
         
         # Order completion tracking
         order_completion = {}
         for run in scheduled:
+            order = run.get('order', '')
             order = run.get('order', '')
             end_time = run.get('end_time', 0)
             if order:
@@ -648,7 +672,7 @@ with tab5:
                         padding: 24px; border-radius: 16px; text-align: center;">
                 <div style="font-size: 36px; font-weight: bold; color: white;">{bottleneck_wc}</div>
                 <div style="font-size: 14px; color: #E0E0E0; margin-top: 4px;">BOTTLENECK</div>
-                <div style="font-size: 12px; color: #BDBDBD;">{bottleneck_mins:.0f} mins total load</div>
+                <div style="font-size: 12px; color: #BDBDBD;">{bottleneck_load_per_machine:.0f} mins/machine ({bottleneck_machines} machines)</div>
             </div>
             """, unsafe_allow_html=True)
         
@@ -672,10 +696,14 @@ with tab5:
         wc_col1, wc_col2 = st.columns([2, 1])
         
         with wc_col1:
-            # Bar chart of WC load
+            # Bar chart of WC utilization
             wc_df_chart = pd.DataFrame([
-                {'Work Center': wc, 'Load (mins)': mins, 'Load (hours)': mins/60}
-                for wc, mins in sorted(wc_load_mins.items(), key=lambda x: -x[1])
+                {
+                    'Work Center': wc, 
+                    'Utilization %': wc_utilization.get(wc, 0),
+                    'Machines': wc_machines.get(wc, 1)
+                }
+                for wc in sorted(wc_load_mins.keys(), key=lambda x: -wc_utilization.get(x, 0))
             ])
             
             if not wc_df_chart.empty:
@@ -683,31 +711,37 @@ with tab5:
                 fig_wc = px.bar(
                     wc_df_chart, 
                     x='Work Center', 
-                    y='Load (hours)',
-                    color='Load (hours)',
-                    color_continuous_scale='Viridis',
-                    title='Work Center Load Distribution'
+                    y='Utilization %',
+                    color='Utilization %',
+                    color_continuous_scale='RdYlGn',
+                    range_color=[0, 100]
                 )
                 fig_wc.update_layout(
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)',
                     font_color='#94A3B8',
                     showlegend=False,
-                    height=350
+                    height=350,
+                    yaxis=dict(range=[0, 105]),
+                    margin=dict(t=20)
                 )
+                fig_wc.add_hline(y=80, line_dash="dash", line_color="#EF4444", 
+                                annotation_text="80% target", annotation_position="right")
                 st.plotly_chart(fig_wc, use_container_width=True)
-        
+
         with wc_col2:
-            st.markdown("### 📋 Load Table")
+            st.markdown("### 📋 Utilization")
             wc_table_data = []
-            max_load = max(wc_load_mins.values()) if wc_load_mins else 1
-            for wc, mins in sorted(wc_load_mins.items(), key=lambda x: -x[1]):
-                pct = (mins / max_load) * 100
+            for wc, mins in sorted(wc_load_mins.items(), key=lambda x: -wc_utilization.get(x[0], 0)):
+                num_m = wc_machines.get(wc, 1)
+                util_pct = wc_utilization.get(wc, 0)
+                load_per_m = wc_load_per_machine.get(wc, 0)
                 wc_table_data.append({
                     'WC': wc,
+                    'Machines': num_m,
                     'Runs': wc_run_count.get(wc, 0),
-                    'Hours': f"{mins/60:.1f}",
-                    'Load %': f"{pct:.0f}%"
+                    'Util %': f"{util_pct:.0f}%",
+                    'Mins/Machine': f"{load_per_m:.0f}"
                 })
             
             if wc_table_data:
@@ -717,6 +751,7 @@ with tab5:
                     hide_index=True,
                     height=300
                 )
+
         
         # =====================================================
         # =====================================================

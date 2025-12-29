@@ -467,69 +467,70 @@ def gantt_from_scheduled_datetime_sorted(
             'run_id', 'product', 'order', 'step',
             'process', 'due_date', 'start_dt', 'finish_dt'
         ],
-        title=title,
+        # No title here - we set it in layout
     )
 
-    # 5) "Steve Jobs" styling: clean, minimal, high signal
+    # Clean, minimal styling
     fig.update_yaxes(
         autorange='reversed',
         categoryorder='array',
         categoryarray=eq_sorted,
-        showgrid=False
+        showgrid=False,
+        title_text='',  # Remove axis title
+        tickfont=dict(size=10)
     )
 
     fig.update_xaxes(
-        title_text='Time',
+        title_text='',  # Remove axis title
         showline=False,
         showgrid=True,
-        gridcolor='rgba(0,0,0,0.06)',
-        zeroline=False
+        gridcolor='rgba(255,255,255,0.1)',
+        zeroline=False,
+        tickfont=dict(size=10)
     )
 
     fig.update_layout(
-        template='simple_white',
-        yaxis_title='Work Center / Unit',
-        legend_title=color_by.capitalize(),
-        bargap=0.1,
-        height=max(520, 32 * len(eq_sorted) + 220),
-        margin=dict(l=80, r=40, t=60, b=40),
+        template='plotly_dark',
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        bargap=0.15,
+        height=max(400, 28 * len(eq_sorted) + 100),
+        margin=dict(l=100, r=20, t=40, b=60),
         font=dict(
-            family="Helvetica, Arial, sans-serif",
-            size=12
+            family="Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+            size=11,
+            color='#94A3B8'
         ),
-        title=dict(
-            x=0.02,
-            xanchor='left',
-            y=0.95,
-            font=dict(size=18, )
-        ),
+        showlegend=True,
         legend=dict(
             orientation='h',
             yanchor='bottom',
             y=1.02,
             xanchor='left',
             x=0.0,
-            bgcolor='rgba(255,255,255,0.8)'
+            bgcolor='rgba(0,0,0,0)',
+            font=dict(size=10)
         ),
     )
 
-    # Make bars visually a bit sleeker
+    # Sleeker bars
     fig.update_traces(
-        marker_line_width=0.5,
-        marker_line_color='rgba(0,0,0,0.15)',
+        marker_line_width=0,
+        opacity=0.9,
         hoverlabel=dict(
-            bgcolor='white',
-            bordercolor='rgba(0,0,0,0.1)',
-            font=dict(size=11)
+            bgcolor='#1E293B',
+            bordercolor='#334155',
+            font=dict(size=11, color='white')
         )
     )
 
-    # 6) Visible window: base_start → last finish
+    # Visible window: base_start → last finish + buffer
     x0 = base_start
-    x1 = df['finish_dt'].max() + timedelta(hours=1)
+    x1 = df['finish_dt'].max() + timedelta(minutes=30)
     if x1 <= x0:
         x1 = x0 + timedelta(hours=1)
     fig.update_xaxes(range=[x0, x1])
+
 
     # 7) Optional due-date vertical markers (no annotation bug)
     if show_due_date_lines:
