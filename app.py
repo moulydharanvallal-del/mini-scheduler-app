@@ -14,8 +14,16 @@ from scheduler_core import (
 
 st.set_page_config(page_title="FlowLab", layout="wide")
 
-st.title("🏭 FlowLab")
-st.caption("Enter your data in the tables below, then click Run to generate a schedule.")
+st.markdown("""
+<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 0;">
+    <span style="font-size: 2.5rem;">🔁</span>
+    <div>
+        <h1 style="margin: 0; padding: 0; font-size: 2.2rem; font-weight: 700;">FlowLab</h1>
+        <p style="margin: 0; color: #64748B; font-size: 0.95rem;">Scheduling • Sequencing • Routing Logic</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+st.markdown("**Define** your system → **Understand** the constraints → **Optimize** the flow")
 
 # --- Dynamic Color Palette ---
 COLOR_PALETTE = [
@@ -774,7 +782,7 @@ with tab5:
                     margin=dict(t=20)
                 )
                 fig_wc.add_hline(y=80, line_dash="dash", line_color="#EF4444", 
-                                annotation_text="80% target", annotation_position="right")
+                                annotation_text="", annotation_position="right")
                 st.plotly_chart(fig_wc, use_container_width=True)
 
         with wc_col2:
@@ -989,131 +997,92 @@ if run:
         st.error(f"❌ Error: {str(e)}")
         st.exception(e)
 
+
 # --- Tab 6: About ---
 with tab6:
     st.markdown("""
-    # �� FlowLab
-    ### An Open Educational Platform for Manufacturing Systems
-    
-    ---
-    
-    ## ⚠️ Disclaimer
-    
-    > **This application is developed solely for illustrative and educational purposes.**
-    > It is not intended for commercial use or production planning in real manufacturing environments.
-    > The author assumes no liability for decisions made based on this tool's outputs.
-    
-    ---
-    
-    ## 🎯 Vision & Purpose
-    
-    FlowLab was created to **democratize access to manufacturing scheduling concepts** and bridge 
-    the gap between theoretical Industrial Engineering (IE) education and practical application.
-    
-    ### The Problem We're Solving
-    
-    Manufacturing scheduling is a cornerstone of Industrial Engineering, yet:
-    - Academic textbooks often present concepts abstractly without interactive visualization
-    - Commercial scheduling software is expensive and complex, creating barriers for students
-    - Researchers lack accessible tools to prototype and validate scheduling algorithms
-    
-    ### Our Contribution to the Field
-    
-    This platform represents an **original contribution to the Industrial Engineering and Operations Research community** by:
-    
-    1. **Providing an open-source, interactive scheduling simulator** that visualizes complex concepts like:
-       - Job-shop scheduling with precedence constraints
-       - Work center capacity planning and load balancing
-       - Bill of Materials (BOM) explosion and routing logic
-       - Makespan optimization and bottleneck identification
-    
-    2. **Enabling hands-on learning** where students can:
-       - Modify inputs and immediately see scheduling impacts
-       - Understand utilization calculations and their implications
-       - Visualize Gantt charts and production timelines
-       - Experiment with capacity scenarios
-    
-    3. **Supporting research and innovation** by offering a foundation that researchers can extend for:
-       - Algorithm comparison studies
-       - Heuristic development and testing
-       - Educational curriculum development
-       - Industry training programs
-    
-    ---
-    
-    ## 🚀 How It Works
-    
-    ### Step 1: Define Orders 📋
-    Enter customer orders with products, quantities, and due dates.
-    
-    ### Step 2: Configure BOM 🔧  
-    Describe manufacturing steps, processes, and cycle times for each product.
-    
-    ### Step 3: Set Capacity 🏭
-    Specify work centers and number of available machines.
-    
-    ### Step 4: Run Scheduler 🚀
-    The algorithm automatically:
-    - Explodes BOM to generate work orders
-    - Sequences operations respecting precedence constraints
-    - Assigns work to available equipment
-    - Calculates completion times and identifies bottlenecks
-    
-    ---
-    
-    ## 📊 Key Metrics Explained
-    
-    | Metric | Definition | Why It Matters |
-    |--------|------------|----------------|
-    | **Makespan** | Total time from first operation to last completion | Primary measure of schedule efficiency |
-    | **Utilization %** | `Work Time ÷ (Available Time × Machines)` | Indicates capacity usage efficiency |
-    | **Bottleneck** | Work center with highest load per machine | Focus area for improvement efforts |
-    
-    ---
-    
-    ## 🎓 Educational Applications
-    
-    - **Undergraduate IE Courses**: Production planning, operations management
-    - **Graduate Research**: Algorithm development, optimization studies
-    - **Professional Training**: Manufacturing systems fundamentals
-    - **Self-Learning**: Interactive exploration of scheduling concepts
-    
-    ---
-    
-    ## 🛠️ Technical Foundation
-    
-    - **Frontend**: Python, Streamlit
-    - **Visualization**: Plotly, Graphviz
-    - **Scheduling Engine**: Custom implementation with precedence-aware dispatching
-    
-    ---
-    
-    ## 📚 Suggested Reading
-    
-    For those wanting to deepen their understanding:
-    - *Manufacturing Planning and Control for Supply Chain Management* - Jacobs et al.
-    - *Factory Physics* - Hopp & Spearman
-    - *Introduction to Sequencing and Scheduling* - Baker & Trietsch
-    
-    ---
-    
-    <div style="background: linear-gradient(135deg, #1E293B 0%, #334155 100%); 
-                padding: 24px; border-radius: 12px; margin-top: 20px;">
-        <p style="color: #94A3B8; font-size: 14px; margin-bottom: 12px;">
-            <strong style="color: #E2E8F0;">About the Author</strong>
-        </p>
-        <p style="color: #CBD5E1; font-size: 13px; line-height: 1.6;">
-            This platform was developed as part of ongoing efforts to advance Industrial Engineering 
-            education and create accessible tools for the global IE community. The author's work 
-            focuses on bridging academic concepts with practical applications, contributing to 
-            workforce development and knowledge dissemination in manufacturing systems.
-        </p>
-        <p style="color: #64748B; font-size: 12px; margin-top: 16px;">
-            🌐 Open Source | 📖 Educational Use | 🎓 Research Friendly
-        </p>
-    </div>
-    
-    <div style="text-align: center; padding: 20px; color: #475569; font-size: 11px;">
-        FlowLab v1.0 | For Educational & Research Purposes Only
-    </div>
+# 🔁 FlowLab
+### Scheduling, Sequencing, and Routing Logic for Manufacturing Systems
+
+---
+
+## ⚠️ Disclaimer
+
+FlowLab is developed for **illustrative and educational purposes**. It is not intended for commercial deployment or for direct production planning in live manufacturing environments. Outputs should be interpreted as conceptual system behavior rather than operational prescriptions.
+
+---
+
+## 🎯 Why FlowLab Exists
+
+Scheduling, sequencing, and routing are the hardest parts of manufacturing systems to reason about. Not because the math is complicated, but because **constraints interact in ways that are hard to see**.
+
+Most tools either hide this complexity behind optimization solvers or assume the system architecture is fixed. FlowLab exists to do the opposite. It exposes how system structure, constraints, and assumptions actually drive outcomes.
+
+**This is a tool for thinking, not button-clicking.**
+
+---
+
+## 🧠 What FlowLab Actually Does
+
+FlowLab implements a **backward, constraint-aware scheduling engine** coupled with a discrete event style simulator.
+
+Starting from demand and due dates, the engine reasons backward through routing logic, precedence constraints, and available capacity to construct a feasible schedule. The simulator then plays that schedule forward, revealing how work moves through the system over time.
+
+This approach makes it possible to see **where and why systems break**.
+
+---
+
+## 🧩 What You Can Explore
+
+FlowLab allows users to interactively explore:
+
+- **Backward scheduling** driven by demand and due dates
+- **Precedence-constrained** job shop sequencing  
+- **Routing logic** across shared work centers
+- **Capacity limits** and machine parallelism
+- **Bottleneck formation**, utilization, and makespan tradeoffs
+- The difference between **feasible schedules** and intuitive ones
+
+Inputs can be modified and rerun quickly, making the impact of constraints immediately visible.
+
+---
+
+## 🚀 Quick Start
+
+1. **📋 Orders Tab** — Define customer orders (product, quantity, due date)
+2. **🔧 BOM Tab** — Set up your Bill of Materials with routing steps and cycle times
+3. **🏭 Work Centers Tab** — Configure available machines at each work center
+4. **▶️ Run Scheduler** — Click the button in the sidebar to generate a schedule
+5. **📊 Results Tab** — View Gantt chart, work orders, and capacity analysis
+
+💡 *Tip: Download the sample CSVs, edit in Excel, and upload to quickly test your own scenarios.*
+
+---
+
+## 🛠️ Design Philosophy
+
+FlowLab is informed by practical experience designing manufacturing systems and by repeated experimentation with scheduling, capacity, and flow models.
+
+The emphasis is on:
+
+- **Making constraints explicit**
+- **Keeping logic transparent**  
+- **Treating system architecture as a decision variable**
+
+Rather than optimizing away complexity, FlowLab surfaces it.
+
+---
+
+## 🎓 Who This Is For
+
+- **Industrial engineers** building real intuition
+- **Researchers** exploring scheduling behavior
+- **Practitioners** stress-testing assumptions
+- **Anyone** who wants to understand how manufacturing systems behave under constraints
+
+---
+
+<div style="text-align: center; padding: 20px; color: #64748B; font-size: 0.9rem;">
+    🌐 Open  •  📖 Educational  •  🧪 Exploratory
+</div>
     """, unsafe_allow_html=True)
