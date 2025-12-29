@@ -970,18 +970,12 @@ if run:
         cap_df = st.session_state.capacity_df
         capacity = dict(zip(cap_df["work_center"], cap_df["num_machines"].astype(int)))
 
-        # Show prominent status
-        status_container = st.empty()
-        status_container.info("⏳ **Scheduler is running...** This may take a moment on first run.")
-        
-        with st.spinner("🔄 Processing BOM, generating work orders, and scheduling..."):
+        with st.spinner("⏳ **Running scheduler...** Processing BOM, generating work orders, and scheduling. First run may take a moment."):
             # Get production start datetime
             prod_start_dt = st.session_state.get("production_start_datetime", datetime.now())
             scheduled, work_orders, plan, fig = run_scheduler(
                 bom, orders, capacity, base_start=prod_start_dt, show_chart=st.session_state.get('show_chart', True)
             )
-        
-        status_container.empty()
 
         st.session_state["scheduled"] = scheduled
         st.session_state["work_orders"] = work_orders
