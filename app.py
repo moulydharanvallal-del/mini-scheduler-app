@@ -12,9 +12,9 @@ from scheduler_core import (
     work_center_capacity as DEFAULT_CAPACITY,
 )
 
-st.set_page_config(page_title="ShopPro", layout="wide")
+st.set_page_config(page_title="FlowLab", layout="wide")
 
-st.title("🏭 ShopPro")
+st.title("🏭 FlowLab")
 st.caption("Enter your data in the tables below, then click Run to generate a schedule.")
 
 # --- Dynamic Color Palette ---
@@ -343,7 +343,7 @@ def clean_for_display(data):
 
 # --- Sidebar ---
 with st.sidebar:
-    st.header("⚡ ShopPro")
+    st.header("⚡ FlowLab")
     st.caption("Manufacturing Scheduler")
     
     st.divider()
@@ -944,7 +944,7 @@ if run:
 # --- Tab 6: About ---
 with tab6:
     st.markdown("""
-    # �� ShopPro
+    # �� FlowLab
     ### An Open Educational Platform for Manufacturing Systems
     
     ---
@@ -959,7 +959,7 @@ with tab6:
     
     ## 🎯 Vision & Purpose
     
-    ShopPro was created to **democratize access to manufacturing scheduling concepts** and bridge 
+    FlowLab was created to **democratize access to manufacturing scheduling concepts** and bridge 
     the gap between theoretical Industrial Engineering (IE) education and practical application.
     
     ### The Problem We're Solving
@@ -1066,6 +1066,6 @@ with tab6:
     </div>
     
     <div style="text-align: center; padding: 20px; color: #475569; font-size: 11px;">
-        ShopPro v1.0 | For Educational & Research Purposes Only
+        FlowLab v1.0 | For Educational & Research Purposes Only
     </div>
     """, unsafe_allow_html=True)
